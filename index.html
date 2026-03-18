@@ -709,6 +709,22 @@
     }
   });
 
+  // ── Flowchart-only mode (?flowchart) ──
+  if (new URLSearchParams(location.search).has('flowchart')) {
+    ['questions'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = 'none';
+    });
+    ['.divider', '.score-section', '.outcome-section', '.copy-section'].forEach(sel => {
+      document.querySelectorAll(sel).forEach(el => el.style.display = 'none');
+    });
+    flowchartBody.classList.add('open');
+    flowchartToggle.style.display = 'none';
+    flowchartBody.appendChild(buildFlowchartSVG(config));
+    flowchartBody.appendChild(buildScoringReference(config));
+    flowchartBuilt = true;
+  }
+
   function svgEl(tag, attrs, children) {
     const ns = 'http://www.w3.org/2000/svg';
     const el = document.createElementNS(ns, tag);
