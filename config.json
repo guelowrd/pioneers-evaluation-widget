@@ -1,36 +1,16 @@
 {
   "questions": [
     {
-      "id": "q1",
-      "label": "Technical delivery confidence",
-      "hint": "How confident are you in the team's ability to deliver the technical component?",
-      "type": "single",
-      "options": [
-        { "label": "<60% sure", "points": 0 },
-        { "label": "60–90% sure", "points": 2 },
-        { "label": ">90% sure", "points": 4 }
-      ]
-    },
-    {
       "id": "q2",
       "label": "Business delivery confidence",
       "hint": "How confident are you in the team's ability to deliver business outcomes? (Weighted heaviest)",
       "type": "single",
+      "hardStop": true,
+      "hardStopAnswer": 0,
       "options": [
         { "label": "<60% sure", "points": 0 },
         { "label": "60–90% sure", "points": 3 },
         { "label": ">90% sure", "points": 6 }
-      ]
-    },
-    {
-      "id": "q3",
-      "label": "Practical privacy / compliance fit",
-      "hint": "Does the project genuinely benefit from Miden's privacy or compliance features?",
-      "type": "single",
-      "options": [
-        { "label": "No", "points": 0 },
-        { "label": "Maybe", "points": 2 },
-        { "label": "Yes", "points": 4 }
       ]
     },
     {
@@ -46,14 +26,14 @@
       ]
     },
     {
-      "id": "q5",
-      "label": "Wallet / narrative fit",
-      "hint": "Does this project align with the wallet narrative and Miden's ecosystem story?",
+      "id": "q3",
+      "label": "Practical privacy / compliance fit",
+      "hint": "Does the project genuinely benefit from Miden's privacy or compliance features?",
       "type": "single",
       "options": [
         { "label": "No", "points": 0 },
-        { "label": "Maybe", "points": 1 },
-        { "label": "Yes", "points": 2 }
+        { "label": "Maybe", "points": 2 },
+        { "label": "Yes", "points": 4 }
       ]
     },
     {
@@ -77,6 +57,28 @@
         { "label": "1 team already building this", "points": 2 },
         { "label": "No team building this", "points": 4 }
       ]
+    },
+    {
+      "id": "q1",
+      "label": "Technical delivery confidence",
+      "hint": "How confident are you in the team's ability to deliver the technical component?",
+      "type": "single",
+      "options": [
+        { "label": "<60% sure", "points": 0 },
+        { "label": "60–90% sure", "points": 2 },
+        { "label": ">90% sure", "points": 4 }
+      ]
+    },
+    {
+      "id": "q5",
+      "label": "Wallet / narrative fit",
+      "hint": "Does this project align with the wallet narrative and Miden's ecosystem story?",
+      "type": "single",
+      "options": [
+        { "label": "No", "points": 0 },
+        { "label": "Maybe", "points": 1 },
+        { "label": "Yes", "points": 2 }
+      ]
     }
   ],
   "specialRule": {
@@ -88,7 +90,7 @@
   "outcomes": [
     {
       "id": "no",
-      "label": "No — not this stage",
+      "label": "No — not at this stage",
       "emoji": "🔴",
       "minScore": 0,
       "maxScore": 14,

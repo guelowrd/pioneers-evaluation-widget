@@ -56,7 +56,10 @@
       display: flex;
       align-items: flex-start;
       gap: 16px;
+      transition: opacity 0.2s;
     }
+
+    .question-row.locked { opacity: 0.35; pointer-events: none; transition: opacity 0.2s; }
 
     .question-label-col {
       flex: 0 0 200px;
@@ -202,6 +205,19 @@
     }
     .special-warning.visible { display: block; }
 
+    .hard-stop-note {
+      margin-top: 10px;
+      font-size: 12px;
+      font-weight: 500;
+      color: #C0270F;
+      background: #FFF0EE;
+      border: 1px solid #F5B8B0;
+      border-radius: 6px;
+      padding: 8px 12px;
+      display: none;
+    }
+    .hard-stop-note.visible { display: block; }
+
     /* Copy button */
     .copy-section {
       padding: 0 28px 28px;
@@ -228,6 +244,90 @@
     .copy-btn.copied { border-color: #22A05B; color: #22A05B; background: #EEFAF3; }
 
     .divider { border: none; border-top: 1px solid #EBEBEB; margin: 0 28px; }
+
+    /* Flowchart */
+    .flowchart-section { border-top: 1px solid #EBEBEB; padding: 16px 28px 24px; }
+    .flowchart-toggle {
+      background: none;
+      border: none;
+      font: 600 13px 'Inter', sans-serif;
+      color: #888;
+      cursor: pointer;
+      padding: 0;
+    }
+    .flowchart-toggle:hover { color: #FF5500; }
+    .flowchart-body { max-height: 0; overflow: hidden; transition: max-height 0.5s ease; }
+    .flowchart-body.open { max-height: 4000px; }
+
+    /* Scoring reference table */
+    .scoring-ref { margin-top: 24px; }
+    .scoring-ref-title {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: #888;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+    .scoring-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+    .scoring-table th {
+      text-align: left;
+      font-size: 10px;
+      font-weight: 600;
+      color: #AAA;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 4px 8px 8px;
+      border-bottom: 1px solid #EBEBEB;
+    }
+    .scoring-table td {
+      padding: 8px 8px;
+      vertical-align: top;
+      border-bottom: 1px solid #F5F5F5;
+    }
+    .scoring-table tr:last-child td { border-bottom: none; }
+    .q-badge {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .scoring-opts { list-style: none; margin: 0; padding: 0; }
+    .scoring-opts li { margin-bottom: 2px; color: #555; }
+    .scoring-opts li span { font-weight: 600; color: #333; }
+    .scoring-special-note {
+      margin-top: 12px;
+      font-size: 11.5px;
+      color: #7A4500;
+      background: #FFF8EE;
+      border: 1px solid #FFD97D;
+      border-radius: 6px;
+      padding: 8px 12px;
+    }
+    .outcome-bar {
+      display: flex;
+      margin-top: 16px;
+      border-radius: 6px;
+      overflow: hidden;
+      height: 28px;
+    }
+    .outcome-bar-seg {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 600;
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      padding: 0 4px;
+    }
   </style>
 </head>
 <body>
@@ -265,6 +365,7 @@
       </div>
       <div class="outcome-desc" id="outcomeDesc"></div>
     </div>
+    <div class="hard-stop-note" id="hardStopNote">⛔ Insufficient business confidence is a hard stop.</div>
     <div class="special-warning" id="specialWarning"></div>
   </div>
 
@@ -277,6 +378,11 @@
       Copy evaluation
     </button>
   </div>
+
+  <div class="flowchart-section">
+    <button class="flowchart-toggle" id="flowchartToggle">↳ Visualize the full decision flowchart</button>
+    <div class="flowchart-body" id="flowchartBody"></div>
+  </div>
 </div>
 
 <script>
@@ -285,24 +391,23 @@
   const { questions, specialRule, outcomes, maxScore, thresholdTicks } = config;
 
   // State
-  // single: state[qId] = { index, label, points } | null
-  // multi:  state[qId] = Set<optionIndex>
   const state = {};
   for (const q of questions) {
     state[q.id] = q.type === 'multi' ? new Set() : null;
   }
 
   // ── DOM refs ──
-  const scoreValue  = document.getElementById('scoreValue');
-  const scoreMax    = document.getElementById('scoreMax');
-  const barFill     = document.getElementById('barFill');
-  const ticks       = document.getElementById('ticks');
-  const outcomeCard = document.getElementById('outcomeCard');
-  const outcomeEmoji = document.getElementById('outcomeEmoji');
-  const outcomeLabel = document.getElementById('outcomeLabel');
-  const outcomeDesc  = document.getElementById('outcomeDesc');
+  const scoreValue     = document.getElementById('scoreValue');
+  const scoreMax       = document.getElementById('scoreMax');
+  const barFill        = document.getElementById('barFill');
+  const ticks          = document.getElementById('ticks');
+  const outcomeCard    = document.getElementById('outcomeCard');
+  const outcomeEmoji   = document.getElementById('outcomeEmoji');
+  const outcomeLabel   = document.getElementById('outcomeLabel');
+  const outcomeDesc    = document.getElementById('outcomeDesc');
   const specialWarning = document.getElementById('specialWarning');
-  const copyBtn     = document.getElementById('copyBtn');
+  const hardStopNote   = document.getElementById('hardStopNote');
+  const copyBtn        = document.getElementById('copyBtn');
 
   scoreMax.textContent = `/ ${maxScore}`;
 
@@ -317,9 +422,12 @@
 
   // ── Render questions ──
   const questionsEl = document.getElementById('questions');
+  const questionRows = {}; // qId → row element
   for (const q of questions) {
     const row = document.createElement('div');
     row.className = 'question-row';
+    row.dataset.qid = q.id;
+    questionRows[q.id] = row;
 
     const labelCol = document.createElement('div');
     labelCol.className = 'question-label-col';
@@ -365,7 +473,7 @@
   function handleSingle(q, idx, opt) {
     const prev = state[q.id];
     if (prev && prev.index === idx) {
-      state[q.id] = null; // deselect
+      state[q.id] = null;
     } else {
       state[q.id] = { index: idx, label: opt.label, points: opt.points };
     }
@@ -378,7 +486,6 @@
     const exclusiveIdx = q.options.findIndex(o => o.exclusive);
 
     if (opt.exclusive) {
-      // Toggle exclusive
       if (sel.has(idx)) {
         sel.delete(idx);
       } else {
@@ -386,11 +493,9 @@
         sel.add(idx);
       }
     } else {
-      // Non-exclusive clicked
       if (sel.has(idx)) {
         sel.delete(idx);
       } else {
-        // Remove exclusive if active
         if (exclusiveIdx !== -1) sel.delete(exclusiveIdx);
         sel.add(idx);
       }
@@ -417,13 +522,23 @@
     pills.forEach((pill, i) => {
       const isSelected = sel.has(i);
       pill.classList.toggle('selected', isSelected);
-      // Dim non-exclusive options when exclusive is active
       if (exclusiveActive && !q.options[i].exclusive) {
         pill.classList.add('dimmed');
       } else {
         pill.classList.remove('dimmed');
       }
     });
+  }
+
+  // ── Hard stop ──
+  function isHardStop() {
+    for (const q of questions) {
+      if (!q.hardStop) continue;
+      const s = state[q.id];
+      if (s === null) continue; // not answered yet
+      if (s.points === q.hardStopAnswer) return { triggered: true, qId: q.id };
+    }
+    return { triggered: false };
   }
 
   // ── Score calc ──
@@ -457,8 +572,7 @@
     const q3pts = state[q3.id] ? state[q3.id].points : null;
     const q4pts = getMultiPoints(q4);
 
-    // Trigger if Q3 answered with 0 pts AND Q4 points = 0
-    if (q3pts === null) return { triggered: false }; // Q3 not answered
+    if (q3pts === null) return { triggered: false };
     const triggered = q3pts === 0 && q4pts === 0;
     return { triggered };
   }
@@ -469,8 +583,6 @@
       if (q.type === 'single') {
         if (state[q.id] === null) return false;
       } else {
-        // multi is optional? Per plan: copy disabled until all 7 answered
-        // Q4 multi counts as answered if at least 1 selected
         if (state[q.id].size === 0) return false;
       }
     }
@@ -488,9 +600,46 @@
   // ── Update UI ──
   function update() {
     const raw = calcScore();
-    const { triggered } = checkSpecialRule(raw);
+    const hardStop = isHardStop();
 
-    let effectiveScore = raw;
+    if (hardStop.triggered) {
+      // Force 🔴 outcome
+      const forceOutcome = outcomes[0];
+      scoreValue.textContent = raw;
+      barFill.style.width = `${Math.min(raw / maxScore, 1) * 100}%`;
+
+      outcomeCard.style.background = forceOutcome.bg || '#F5F5F5';
+      outcomeCard.style.borderColor = forceOutcome.color || 'transparent';
+      outcomeEmoji.textContent = forceOutcome.emoji || '—';
+      outcomeLabel.textContent = forceOutcome.label;
+      outcomeLabel.style.color = forceOutcome.color || '#1A1A1A';
+      outcomeDesc.textContent = forceOutcome.description || '';
+      outcomeDesc.style.color = forceOutcome.color || '#444';
+
+      hardStopNote.classList.add('visible');
+      specialWarning.classList.remove('visible');
+
+      // Lock all question rows except the hard-stop question row
+      for (const q of questions) {
+        const row = questionRows[q.id];
+        if (q.id === hardStop.qId) {
+          row.classList.remove('locked');
+        } else {
+          row.classList.add('locked');
+        }
+      }
+
+      copyBtn.disabled = true;
+      return;
+    }
+
+    // No hard stop — unlock all rows
+    for (const q of questions) {
+      questionRows[q.id].classList.remove('locked');
+    }
+    hardStopNote.classList.remove('visible');
+
+    const { triggered } = checkSpecialRule(raw);
     let cappedOutcome = null;
     if (triggered) {
       cappedOutcome = outcomes.find(o => o.id === specialRule.capOutcomeId);
@@ -500,11 +649,9 @@
       ? cappedOutcome
       : getOutcome(raw);
 
-    // Score display
     scoreValue.textContent = raw;
     barFill.style.width = `${Math.min(raw / maxScore, 1) * 100}%`;
 
-    // Outcome card
     outcomeCard.style.background = outcome.bg || '#F5F5F5';
     outcomeCard.style.borderColor = outcome.color || 'transparent';
     outcomeEmoji.textContent = outcome.emoji || '—';
@@ -513,7 +660,6 @@
     outcomeDesc.textContent = outcome.description || '';
     outcomeDesc.style.color = outcome.color || '#444';
 
-    // Special warning
     if (triggered && cappedOutcome && getOutcome(raw).minScore > cappedOutcome.maxScore) {
       specialWarning.textContent = specialRule.warning;
       specialWarning.classList.add('visible');
@@ -521,7 +667,6 @@
       specialWarning.classList.remove('visible');
     }
 
-    // Copy button
     copyBtn.disabled = !allAnswered();
   }
 
@@ -578,6 +723,407 @@
       }, 2000);
     });
   });
+
+  // ── Flowchart ──
+  let flowchartBuilt = false;
+  const flowchartToggle = document.getElementById('flowchartToggle');
+  const flowchartBody   = document.getElementById('flowchartBody');
+
+  flowchartToggle.addEventListener('click', () => {
+    const isOpen = flowchartBody.classList.toggle('open');
+    flowchartToggle.textContent = isOpen
+      ? '↑ Hide decision flowchart'
+      : '↳ Visualize the full decision flowchart';
+    if (isOpen && !flowchartBuilt) {
+      flowchartBody.appendChild(buildFlowchartSVG(config));
+      flowchartBody.appendChild(buildScoringReference(config));
+      flowchartBuilt = true;
+    }
+  });
+
+  function svgEl(tag, attrs, children) {
+    const ns = 'http://www.w3.org/2000/svg';
+    const el = document.createElementNS(ns, tag);
+    for (const [k, v] of Object.entries(attrs || {})) el.setAttribute(k, v);
+    for (const child of (children || [])) {
+      if (typeof child === 'string') {
+        el.appendChild(document.createTextNode(child));
+      } else {
+        el.appendChild(child);
+      }
+    }
+    return el;
+  }
+
+  function svgText(x, y, text, attrs) {
+    return svgEl('text', { x, y, ...attrs }, [text]);
+  }
+
+  function svgRect(x, y, w, h, attrs) {
+    return svgEl('rect', { x, y, width: w, height: h, ...attrs });
+  }
+
+  function svgLine(x1, y1, x2, y2, attrs) {
+    return svgEl('line', { x1, y1, x2, y2, ...attrs });
+  }
+
+  function svgPath(d, attrs) {
+    return svgEl('path', { d, ...attrs });
+  }
+
+  function buildFlowchartSVG(cfg) {
+    const W = 720;
+    const H = 820;
+    const cx = 360;
+    const nodeW = 340;
+    const nodeH = 60;
+    const fontFam = 'Inter, sans-serif';
+
+    const svg = svgEl('svg', {
+      viewBox: `0 0 ${W} ${H}`,
+      width: '100%',
+      style: 'display:block; margin-top:16px;'
+    });
+
+    // Arrow marker
+    const defs = svgEl('defs');
+    const marker = svgEl('marker', {
+      id: 'arrow', markerWidth: '8', markerHeight: '8',
+      refX: '6', refY: '3', orient: 'auto'
+    });
+    marker.appendChild(svgPath('M0,0 L0,6 L8,3 z', { fill: '#999' }));
+    defs.appendChild(marker);
+
+    const markerAmber = svgEl('marker', {
+      id: 'arrowAmber', markerWidth: '8', markerHeight: '8',
+      refX: '6', refY: '3', orient: 'auto'
+    });
+    markerAmber.appendChild(svgPath('M0,0 L0,6 L8,3 z', { fill: '#FFD97D' }));
+    defs.appendChild(markerAmber);
+
+    const markerRed = svgEl('marker', {
+      id: 'arrowRed', markerWidth: '8', markerHeight: '8',
+      refX: '6', refY: '3', orient: 'auto'
+    });
+    markerRed.appendChild(svgPath('M0,0 L0,6 L8,3 z', { fill: '#C0270F' }));
+    defs.appendChild(markerRed);
+
+    svg.appendChild(defs);
+
+    // Helper: draw a node box with label + sublabel
+    function drawNode(g, x, y, w, h, bg, border, label, sublabel, textColor) {
+      g.appendChild(svgRect(x, y, w, h, { rx: 8, fill: bg, stroke: border, 'stroke-width': 1.5 }));
+      g.appendChild(svgText(x + w / 2, y + (sublabel ? h / 2 - 4 : h / 2 + 5), label, {
+        'font-family': fontFam, 'font-size': 12, 'font-weight': 600,
+        fill: textColor, 'text-anchor': 'middle', 'dominant-baseline': 'middle'
+      }));
+      if (sublabel) {
+        g.appendChild(svgText(x + w / 2, y + h / 2 + 14, sublabel, {
+          'font-family': fontFam, 'font-size': 10, 'font-weight': 400,
+          fill: textColor, 'text-anchor': 'middle', 'dominant-baseline': 'middle',
+          opacity: 0.75
+        }));
+      }
+    }
+
+    // Helper: arrow down
+    function arrowDown(g, x, y1, y2, label) {
+      g.appendChild(svgLine(x, y1, x, y2 - 8, {
+        stroke: '#999', 'stroke-width': 1.5, 'marker-end': 'url(#arrow)'
+      }));
+      if (label) {
+        g.appendChild(svgText(x + 6, (y1 + y2) / 2, label, {
+          'font-family': fontFam, 'font-size': 9.5, fill: '#888',
+          'text-anchor': 'start', 'dominant-baseline': 'middle'
+        }));
+      }
+    }
+
+    const g = svgEl('g');
+    svg.appendChild(g);
+
+    // ── Start pill ──
+    const startY = 20;
+    g.appendChild(svgRect(cx - 110, startY, 220, 32, { rx: 16, fill: '#FF5500' }));
+    g.appendChild(svgText(cx, startY + 16, 'New team reaches out', {
+      'font-family': fontFam, 'font-size': 12, 'font-weight': 600,
+      fill: '#fff', 'text-anchor': 'middle', 'dominant-baseline': 'middle'
+    }));
+
+    // ── Q1 (hard-stop gate): Business delivery confidence ──
+    const q1y = 72;
+    arrowDown(g, cx, startY + 32, q1y);
+    drawNode(g, cx - nodeW / 2, q1y, nodeW, nodeH,
+      '#EEF3FA', '#B8CCE8',
+      'Q1 — Business delivery confidence',
+      'How confident is the team in delivering business outcomes?',
+      '#1A3A5C');
+
+    // Left branch: hard stop reject
+    const rejectX = 80;
+    const rejectY = q1y + 10;
+    const rejectW = 130;
+    const rejectH = 44;
+    // Arrow left
+    g.appendChild(svgLine(cx - nodeW / 2, q1y + nodeH / 2, rejectX + rejectW, rejectY + rejectH / 2, {
+      stroke: '#C0270F', 'stroke-width': 1.5, 'marker-end': 'url(#arrowRed)'
+    }));
+    g.appendChild(svgText((cx - nodeW / 2 + rejectX + rejectW) / 2, rejectY - 10, '<60% → hard stop', {
+      'font-family': fontFam, 'font-size': 9, fill: '#C0270F', 'text-anchor': 'middle'
+    }));
+    g.appendChild(svgRect(rejectX, rejectY, rejectW, rejectH, { rx: 7, fill: '#FFF0EE', stroke: '#C0270F', 'stroke-width': 1.5 }));
+    g.appendChild(svgText(rejectX + rejectW / 2, rejectY + rejectH / 2 - 6, '🔴 Not at this stage', {
+      'font-family': fontFam, 'font-size': 11, 'font-weight': 600,
+      fill: '#C0270F', 'text-anchor': 'middle', 'dominant-baseline': 'middle'
+    }));
+    g.appendChild(svgText(rejectX + rejectW / 2, rejectY + rejectH / 2 + 9, '(hard stop)', {
+      'font-family': fontFam, 'font-size': 9.5, fill: '#C0270F',
+      'text-anchor': 'middle', 'dominant-baseline': 'middle', opacity: 0.75
+    }));
+
+    // ── Q2: Guardian leverage ──
+    const q2y = q1y + nodeH + 50;
+    arrowDown(g, cx, q1y + nodeH, q2y, '≥ 1 pt → continue');
+    drawNode(g, cx - nodeW / 2, q2y, nodeW, nodeH,
+      '#EEF3FA', '#B8CCE8',
+      'Q2 — Guardian leverage',
+      'Does the project leverage Guardian? (multi-select, points stack)',
+      '#1A3A5C');
+
+    // ── Q3: Privacy / compliance fit ──
+    const q3y = q2y + nodeH + 50;
+    arrowDown(g, cx, q2y + nodeH, q3y);
+    drawNode(g, cx - nodeW / 2, q3y, nodeW, nodeH,
+      '#EEF3FA', '#B8CCE8',
+      'Q3 — Practical privacy / compliance fit',
+      'Does the project genuinely benefit from Miden's privacy features?',
+      '#1A3A5C');
+
+    // Right branch: capped outcome
+    const cappedX = 550;
+    const cappedY = q3y + 8;
+    const cappedW = 148;
+    const cappedH = 52;
+    g.appendChild(svgLine(cx + nodeW / 2, q3y + nodeH / 2, cappedX, cappedY + cappedH / 2, {
+      stroke: '#FFD97D', 'stroke-width': 1.5, 'marker-end': 'url(#arrowAmber)'
+    }));
+    g.appendChild(svgText((cx + nodeW / 2 + cappedX) / 2, cappedY - 10, 'Both = 0', {
+      'font-family': fontFam, 'font-size': 9, fill: '#7A4500', 'text-anchor': 'middle'
+    }));
+    g.appendChild(svgRect(cappedX, cappedY, cappedW, cappedH, { rx: 7, fill: '#FFF8EE', stroke: '#FFD97D', 'stroke-width': 1.5 }));
+    g.appendChild(svgText(cappedX + cappedW / 2, cappedY + 14, '🟡 Capped', {
+      'font-family': fontFam, 'font-size': 11, 'font-weight': 600,
+      fill: '#7A4500', 'text-anchor': 'middle'
+    }));
+    g.appendChild(svgText(cappedX + cappedW / 2, cappedY + 28, 'Needs further', {
+      'font-family': fontFam, 'font-size': 10, fill: '#7A4500', 'text-anchor': 'middle'
+    }));
+    g.appendChild(svgText(cappedX + cappedW / 2, cappedY + 41, 'discussion', {
+      'font-family': fontFam, 'font-size': 10, fill: '#7A4500', 'text-anchor': 'middle'
+    }));
+
+    // ── Q4: Product already built? ──
+    const q4y = q3y + nodeH + 50;
+    arrowDown(g, cx, q3y + nodeH, q4y, 'not both = 0 → continue');
+    drawNode(g, cx - nodeW / 2, q4y, nodeW, nodeH,
+      '#EEF3FA', '#B8CCE8',
+      'Q4 — Product already built?',
+      'What is the current build status of the product?',
+      '#1A3A5C');
+
+    // ── Q5: Similar Pioneer / partner exists? ──
+    const q5y = q4y + nodeH + 50;
+    arrowDown(g, cx, q4y + nodeH, q5y);
+    drawNode(g, cx - nodeW / 2, q5y, nodeW, nodeH,
+      '#EEF3FA', '#B8CCE8',
+      'Q5 — Similar Pioneer / partner exists?',
+      'Is anyone else building a similar solution in the ecosystem?',
+      '#1A3A5C');
+
+    // ── Q6+Q7 combined ──
+    const q67y = q5y + nodeH + 50;
+    arrowDown(g, cx, q5y + nodeH, q67y);
+    drawNode(g, cx - nodeW / 2, q67y, nodeW, nodeH,
+      '#EEF3FA', '#B8CCE8',
+      'Q6 + Q7 — Technical confidence & Wallet fit',
+      'Score both, no hard gates → adding to total',
+      '#1A3A5C');
+
+    // ── Score gate ──
+    const gateY = q67y + nodeH + 50;
+    arrowDown(g, cx, q67y + nodeH, gateY);
+    g.appendChild(svgRect(cx - nodeW / 2, gateY, nodeW, 56, { rx: 8, fill: '#1A1A1A' }));
+    g.appendChild(svgText(cx, gateY + 16, 'Total score + outcome (max 30 pts)', {
+      'font-family': fontFam, 'font-size': 12, 'font-weight': 600,
+      fill: '#fff', 'text-anchor': 'middle'
+    }));
+
+    // Mini threshold bar inside score gate
+    const barY = gateY + 28;
+    const barX = cx - nodeW / 2 + 12;
+    const barW = nodeW - 24;
+    const segs = [
+      { label: '0–14', pct: 14 / 30, color: '#C0270F' },
+      { label: '15–19', pct: 5 / 30, color: '#7A4500' },
+      { label: '20–24', pct: 5 / 30, color: '#0A5C35' },
+      { label: '25–27', pct: 3 / 30, color: '#063D23' },
+      { label: '28–30', pct: 3 / 30, color: '#3D2D8A' }
+    ];
+    let bx = barX;
+    for (const seg of segs) {
+      const sw = barW * seg.pct;
+      g.appendChild(svgRect(bx, barY, sw, 14, { fill: seg.color }));
+      g.appendChild(svgText(bx + sw / 2, barY + 7, seg.label, {
+        'font-family': fontFam, 'font-size': 8, 'font-weight': 600,
+        fill: '#fff', 'text-anchor': 'middle', 'dominant-baseline': 'middle'
+      }));
+      bx += sw;
+    }
+
+    // ── Outcome fan ──
+    const fanY = gateY + 56 + 50;
+    arrowDown(g, cx, gateY + 56, fanY);
+
+    const fanBoxW = 118;
+    const fanBoxH = 54;
+    const fanSpacing = (W - 20 - fanBoxW) / (outcomes.length - 1);
+    const scoreRanges = ['0–14', '15–19', '20–24', '25–27', '28–30'];
+
+    outcomes.forEach((o, i) => {
+      const fx = 10 + i * fanSpacing;
+      g.appendChild(svgRect(fx, fanY, fanBoxW, fanBoxH, {
+        rx: 7, fill: o.bg, stroke: o.color, 'stroke-width': 1.5
+      }));
+      g.appendChild(svgText(fx + fanBoxW / 2, fanY + 14, o.emoji, {
+        'font-family': fontFam, 'font-size': 14, 'text-anchor': 'middle'
+      }));
+      const shortLabel = o.label.length > 18 ? o.label.slice(0, 17) + '…' : o.label;
+      g.appendChild(svgText(fx + fanBoxW / 2, fanY + 30, shortLabel, {
+        'font-family': fontFam, 'font-size': 9, 'font-weight': 600,
+        fill: o.color, 'text-anchor': 'middle'
+      }));
+      g.appendChild(svgText(fx + fanBoxW / 2, fanY + 43, scoreRanges[i], {
+        'font-family': fontFam, 'font-size': 9, fill: o.color,
+        'text-anchor': 'middle', opacity: 0.75
+      }));
+    });
+
+    // Dashed amber line from capped box → 🟡 outcome box (index 1)
+    const needsDiscussionX = 10 + 1 * fanSpacing + fanBoxW / 2;
+    const dashedStartX = cappedX + cappedW / 2;
+    const dashedStartY = cappedY + cappedH;
+    const dashedEndY = fanY;
+
+    // Route: down from capped box, then across, then down to outcome
+    const midY = fanY - 20;
+    g.appendChild(svgEl('polyline', {
+      points: `${dashedStartX},${dashedStartY} ${dashedStartX},${midY} ${needsDiscussionX},${midY} ${needsDiscussionX},${dashedEndY - 8}`,
+      fill: 'none',
+      stroke: '#FFD97D',
+      'stroke-width': 1.5,
+      'stroke-dasharray': '5 4',
+      'marker-end': 'url(#arrowAmber)'
+    }));
+
+    return svg;
+  }
+
+  function buildScoringReference(cfg) {
+    const { questions, outcomes, specialRule } = cfg;
+
+    const badgeColors = [
+      { bg: '#FF5500', color: '#fff' },
+      { bg: '#B8CCE8', color: '#1A3A5C' },
+      { bg: '#B8CCE8', color: '#1A3A5C' },
+      { bg: '#B8CCE8', color: '#1A3A5C' },
+      { bg: '#B8CCE8', color: '#1A3A5C' },
+      { bg: '#B8CCE8', color: '#1A3A5C' },
+      { bg: '#B8CCE8', color: '#1A3A5C' },
+    ];
+
+    const div = document.createElement('div');
+    div.className = 'scoring-ref';
+
+    const title = document.createElement('div');
+    title.className = 'scoring-ref-title';
+    title.textContent = 'Scoring Reference — All 7 Questions';
+    div.appendChild(title);
+
+    const table = document.createElement('table');
+    table.className = 'scoring-table';
+
+    const thead = document.createElement('thead');
+    thead.innerHTML = '<tr><th>Q</th><th>Question</th><th>Options &amp; Points</th></tr>';
+    table.appendChild(thead);
+
+    const tbody = document.createElement('tbody');
+    questions.forEach((q, i) => {
+      const bc = badgeColors[i] || badgeColors[1];
+      const tr = document.createElement('tr');
+
+      const tdQ = document.createElement('td');
+      const badge = document.createElement('span');
+      badge.className = 'q-badge';
+      badge.style.background = bc.bg;
+      badge.style.color = bc.color;
+      badge.textContent = q.id.toUpperCase();
+      if (q.hardStop) {
+        badge.title = 'Hard stop';
+        badge.textContent += ' ⛔';
+      }
+      tdQ.appendChild(badge);
+      tr.appendChild(tdQ);
+
+      const tdLabel = document.createElement('td');
+      tdLabel.textContent = q.label;
+      tdLabel.style.fontWeight = '500';
+      tdLabel.style.fontSize = '12px';
+      tr.appendChild(tdLabel);
+
+      const tdOpts = document.createElement('td');
+      const ul = document.createElement('ul');
+      ul.className = 'scoring-opts';
+      for (const opt of q.options) {
+        const li = document.createElement('li');
+        li.innerHTML = `${opt.label} <span>+${opt.points} pt${opt.points !== 1 ? 's' : ''}</span>`;
+        ul.appendChild(li);
+      }
+      if (q.type === 'multi') {
+        const note = document.createElement('li');
+        note.style.color = '#888';
+        note.style.fontStyle = 'italic';
+        note.textContent = '(multi-select, points stack)';
+        ul.appendChild(note);
+      }
+      tdOpts.appendChild(ul);
+      tr.appendChild(tdOpts);
+
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    div.appendChild(table);
+
+    const note = document.createElement('div');
+    note.className = 'scoring-special-note';
+    note.textContent = '⚠️ If Q3 (privacy) pts = 0 AND Q2 (Guardian) = 0 → capped at Needs discussion, regardless of other scores';
+    div.appendChild(note);
+
+    // Outcome bar
+    const barDiv = document.createElement('div');
+    barDiv.className = 'outcome-bar';
+    const scoreRanges = ['0–14', '15–19', '20–24', '25–27', '28–30'];
+    outcomes.forEach((o, i) => {
+      const seg = document.createElement('div');
+      seg.className = 'outcome-bar-seg';
+      seg.style.background = o.color;
+      seg.style.color = '#fff';
+      seg.textContent = `${o.emoji} ${scoreRanges[i]}`;
+      barDiv.appendChild(seg);
+    });
+    div.appendChild(barDiv);
+
+    return div;
+  }
 
   // Initial render
   update();
