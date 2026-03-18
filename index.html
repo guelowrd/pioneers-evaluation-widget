@@ -260,73 +260,73 @@
     .flowchart-body.open { max-height: 4000px; }
 
     /* Scoring reference table */
-    .scoring-ref { margin-top: 24px; }
+    .scoring-ref { margin-top: 16px; }
     .scoring-ref-title {
-      font-size: 10px;
+      font-size: 9px;
       font-weight: 700;
       letter-spacing: 1px;
       color: #888;
       text-transform: uppercase;
-      margin-bottom: 12px;
+      margin-bottom: 8px;
     }
     .scoring-table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 12px;
+      font-size: 9px;
     }
     .scoring-table th {
       text-align: left;
-      font-size: 10px;
+      font-size: 8px;
       font-weight: 600;
       color: #AAA;
       text-transform: uppercase;
       letter-spacing: 0.5px;
-      padding: 4px 8px 8px;
+      padding: 3px 6px 5px;
       border-bottom: 1px solid #EBEBEB;
     }
     .scoring-table td {
-      padding: 8px 8px;
+      padding: 5px 6px;
       vertical-align: top;
       border-bottom: 1px solid #F5F5F5;
     }
     .scoring-table tr:last-child td { border-bottom: none; }
     .q-badge {
       display: inline-block;
-      padding: 2px 7px;
+      padding: 1px 5px;
       border-radius: 10px;
-      font-size: 11px;
+      font-size: 8px;
       font-weight: 700;
       white-space: nowrap;
     }
     .scoring-opts { list-style: none; margin: 0; padding: 0; }
-    .scoring-opts li { margin-bottom: 2px; color: #555; }
+    .scoring-opts li { margin-bottom: 1px; color: #555; }
     .scoring-opts li span { font-weight: 600; color: #333; }
     .scoring-special-note {
-      margin-top: 12px;
-      font-size: 11.5px;
+      margin-top: 10px;
+      font-size: 9px;
       color: #7A4500;
       background: #FFF8EE;
       border: 1px solid #FFD97D;
       border-radius: 6px;
-      padding: 8px 12px;
+      padding: 6px 10px;
     }
     .outcome-bar {
       display: flex;
-      margin-top: 16px;
+      margin-top: 10px;
       border-radius: 6px;
       overflow: hidden;
-      height: 28px;
+      height: 22px;
     }
     .outcome-bar-seg {
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 10px;
+      font-size: 8px;
       font-weight: 600;
       flex: 1;
       white-space: nowrap;
       overflow: hidden;
-      padding: 0 4px;
+      padding: 0 3px;
     }
   </style>
 </head>
@@ -740,85 +740,99 @@
   }
 
   function buildFlowchartSVG(cfg) {
-    const W = 720;
-    const H = 900;
-    const cx = 360;
-    const nodeW = 340;
-    const nodeH = 60;
+    const W       = 720;
+    const cx      = 360;
+    const nodeW   = 340;
+    const nodeH   = 40;   // was 60 (−33%)
+    const gap     = 36;   // was 80 (−55%)
+    const gateH   = 38;
     const fontFam = 'Inter, sans-serif';
+
+    // Y layout (computed from scaled constants)
+    const startY  = 12;
+    const pillH   = 22;
+    const q1y     = startY + pillH + gap;          // 70
+    const q2y     = q1y  + nodeH + gap;            // 146
+    const q3y     = q2y  + nodeH + gap;            // 222
+    const q45y    = q3y  + nodeH + gap;            // 298
+    const gateY   = q45y + nodeH + gap;            // 374
+    const fanH    = 40;
+    const fanY    = gateY + gateH + 30;            // 442
+    const H       = fanY + fanH + 8;               // 490
 
     const svg = svgEl('svg', {
       viewBox: `0 0 ${W} ${H}`,
       width: '100%',
-      style: 'display:block; margin-top:16px;'
+      style: 'display:block; margin-top:12px;'
     });
 
     // Arrow markers
     const defs = svgEl('defs');
     const marker = svgEl('marker', {
-      id: 'arrow', markerWidth: '8', markerHeight: '8',
-      refX: '6', refY: '3', orient: 'auto'
+      id: 'arrow', markerWidth: '7', markerHeight: '7',
+      refX: '5', refY: '3', orient: 'auto'
     });
-    marker.appendChild(svgPath('M0,0 L0,6 L8,3 z', { fill: '#999' }));
+    marker.appendChild(svgPath('M0,0 L0,6 L7,3 z', { fill: '#999' }));
     defs.appendChild(marker);
 
     const markerRed = svgEl('marker', {
-      id: 'arrowRed', markerWidth: '8', markerHeight: '8',
-      refX: '6', refY: '3', orient: 'auto'
+      id: 'arrowRed', markerWidth: '7', markerHeight: '7',
+      refX: '5', refY: '3', orient: 'auto'
     });
-    markerRed.appendChild(svgPath('M0,0 L0,6 L8,3 z', { fill: '#C0270F' }));
+    markerRed.appendChild(svgPath('M0,0 L0,6 L7,3 z', { fill: '#C0270F' }));
     defs.appendChild(markerRed);
 
     svg.appendChild(defs);
 
-    // Helper: draw a node box with label + sublabel
+    // Helper: node box with label + sublabel
     function drawNode(g, x, y, w, h, bg, border, label, sublabel, textColor) {
-      g.appendChild(svgRect(x, y, w, h, { rx: 8, fill: bg, stroke: border, 'stroke-width': 1.5 }));
-      g.appendChild(svgText(x + w / 2, y + (sublabel ? h / 2 - 4 : h / 2 + 5), label, {
-        'font-family': fontFam, 'font-size': 12, 'font-weight': 600,
+      g.appendChild(svgRect(x, y, w, h, { rx: 6, fill: bg, stroke: border, 'stroke-width': 1.5 }));
+      g.appendChild(svgText(x + w / 2, y + (sublabel ? h / 2 - 5 : h / 2), label, {
+        'font-family': fontFam, 'font-size': 8.5, 'font-weight': 600,
         fill: textColor, 'text-anchor': 'middle', 'dominant-baseline': 'middle'
       }));
       if (sublabel) {
-        g.appendChild(svgText(x + w / 2, y + h / 2 + 14, sublabel, {
-          'font-family': fontFam, 'font-size': 10, 'font-weight': 400,
+        g.appendChild(svgText(x + w / 2, y + h / 2 + 11, sublabel, {
+          'font-family': fontFam, 'font-size': 7, 'font-weight': 400,
           fill: textColor, 'text-anchor': 'middle', 'dominant-baseline': 'middle',
           opacity: 0.75
         }));
       }
     }
 
-    // Helper: arrow down
+    // Helper: down arrow with optional label
     function arrowDown(g, x, y1, y2, label) {
-      g.appendChild(svgLine(x, y1, x, y2 - 8, {
+      g.appendChild(svgLine(x, y1, x, y2 - 6, {
         stroke: '#999', 'stroke-width': 1.5, 'marker-end': 'url(#arrow)'
       }));
       if (label) {
-        g.appendChild(svgText(x + 6, (y1 + y2) / 2, label, {
-          'font-family': fontFam, 'font-size': 9.5, fill: '#888',
+        g.appendChild(svgText(x + 5, (y1 + y2) / 2, label, {
+          'font-family': fontFam, 'font-size': 6.5, fill: '#888',
           'text-anchor': 'start', 'dominant-baseline': 'middle'
         }));
       }
     }
 
-    // Helper: draw a left-branch reject box for a gate at gateY
+    // Helper: left-branch reject box
     const rejectX = 5;
-    const rejectW = 120;
-    const rejectH = 44;
-    function drawReject(g, gateY, branchLabel) {
-      const rY = gateY + 8;
-      g.appendChild(svgLine(cx - nodeW / 2, gateY + nodeH / 2, rejectX + rejectW, rY + rejectH / 2, {
+    const rejectW = 100;
+    const rejectH = 28;
+    function drawReject(g, gy, branchLabel) {
+      const rY = gy + 6;
+      const nodeLeft = cx - nodeW / 2;
+      g.appendChild(svgLine(nodeLeft, gy + nodeH / 2, rejectX + rejectW, rY + rejectH / 2, {
         stroke: '#C0270F', 'stroke-width': 1.5, 'marker-end': 'url(#arrowRed)'
       }));
-      g.appendChild(svgText((cx - nodeW / 2 + rejectX + rejectW) / 2, rY - 10, branchLabel, {
-        'font-family': fontFam, 'font-size': 9, fill: '#C0270F', 'text-anchor': 'middle'
+      g.appendChild(svgText((nodeLeft + rejectX + rejectW) / 2, rY - 7, branchLabel, {
+        'font-family': fontFam, 'font-size': 6.5, fill: '#C0270F', 'text-anchor': 'middle'
       }));
-      g.appendChild(svgRect(rejectX, rY, rejectW, rejectH, { rx: 7, fill: '#FFF0EE', stroke: '#C0270F', 'stroke-width': 1.5 }));
-      g.appendChild(svgText(rejectX + rejectW / 2, rY + rejectH / 2 - 6, '\uD83D\uDD34 Not at this stage', {
-        'font-family': fontFam, 'font-size': 10, 'font-weight': 600,
+      g.appendChild(svgRect(rejectX, rY, rejectW, rejectH, { rx: 5, fill: '#FFF0EE', stroke: '#C0270F', 'stroke-width': 1.5 }));
+      g.appendChild(svgText(rejectX + rejectW / 2, rY + rejectH / 2 - 5, '\uD83D\uDD34 Not at this stage', {
+        'font-family': fontFam, 'font-size': 7, 'font-weight': 600,
         fill: '#C0270F', 'text-anchor': 'middle', 'dominant-baseline': 'middle'
       }));
-      g.appendChild(svgText(rejectX + rejectW / 2, rY + rejectH / 2 + 9, '(hard stop)', {
-        'font-family': fontFam, 'font-size': 9.5, fill: '#C0270F',
+      g.appendChild(svgText(rejectX + rejectW / 2, rY + rejectH / 2 + 7, '(hard stop)', {
+        'font-family': fontFam, 'font-size': 6.5, fill: '#C0270F',
         'text-anchor': 'middle', 'dominant-baseline': 'middle', opacity: 0.75
       }));
     }
@@ -827,16 +841,14 @@
     svg.appendChild(g);
 
     // ── Start pill ──
-    const startY = 20;
-    g.appendChild(svgRect(cx - 110, startY, 220, 32, { rx: 16, fill: '#FF5500' }));
-    g.appendChild(svgText(cx, startY + 16, 'New team reaches out', {
-      'font-family': fontFam, 'font-size': 12, 'font-weight': 600,
+    g.appendChild(svgRect(cx - 80, startY, 160, pillH, { rx: 11, fill: '#FF5500' }));
+    g.appendChild(svgText(cx, startY + pillH / 2, 'New team reaches out', {
+      'font-family': fontFam, 'font-size': 8.5, 'font-weight': 600,
       fill: '#fff', 'text-anchor': 'middle', 'dominant-baseline': 'middle'
     }));
 
-    // ── Q1 gate: Technical delivery confidence ──
-    const q1y = 132;
-    arrowDown(g, cx, startY + 32, q1y);
+    // ── Q1: Technical delivery confidence ──
+    arrowDown(g, cx, startY + pillH, q1y);
     drawNode(g, cx - nodeW / 2, q1y, nodeW, nodeH,
       '#EEF3FA', '#B8CCE8',
       'Q1 \u2014 Technical delivery confidence',
@@ -844,8 +856,7 @@
       '#1A3A5C');
     drawReject(g, q1y, '<60% \u2192 hard stop');
 
-    // ── Q2 gate: Business delivery confidence ──
-    const q2y = 272;
+    // ── Q2: Business delivery confidence ──
     arrowDown(g, cx, q1y + nodeH, q2y, '\u2265 1 pt \u2192 continue');
     drawNode(g, cx - nodeW / 2, q2y, nodeW, nodeH,
       '#EEF3FA', '#B8CCE8',
@@ -854,8 +865,7 @@
       '#1A3A5C');
     drawReject(g, q2y, '<60% \u2192 hard stop');
 
-    // ── Q3 gate: Ecosystem fit ──
-    const q3y = 412;
+    // ── Q3: Ecosystem fit ──
     arrowDown(g, cx, q2y + nodeH, q3y, '\u2265 1 pt \u2192 continue');
     drawNode(g, cx - nodeW / 2, q3y, nodeW, nodeH,
       '#EEF3FA', '#B8CCE8',
@@ -865,7 +875,6 @@
     drawReject(g, q3y, 'total = 0 \u2192 hard stop');
 
     // ── Q4 + Q5 combined ──
-    const q45y = 552;
     arrowDown(g, cx, q3y + nodeH, q45y, '\u2265 1 pt \u2192 continue');
     drawNode(g, cx - nodeW / 2, q45y, nodeW, nodeH,
       '#EEF3FA', '#B8CCE8',
@@ -874,18 +883,17 @@
       '#1A3A5C');
 
     // ── Score gate ──
-    const gateY = 692;
     arrowDown(g, cx, q45y + nodeH, gateY);
-    g.appendChild(svgRect(cx - nodeW / 2, gateY, nodeW, 56, { rx: 8, fill: '#1A1A1A' }));
-    g.appendChild(svgText(cx, gateY + 16, 'Total score + outcome (max 30 pts)', {
-      'font-family': fontFam, 'font-size': 12, 'font-weight': 600,
+    g.appendChild(svgRect(cx - nodeW / 2, gateY, nodeW, gateH, { rx: 6, fill: '#1A1A1A' }));
+    g.appendChild(svgText(cx, gateY + 12, 'Total score + outcome (max 30 pts)', {
+      'font-family': fontFam, 'font-size': 8.5, 'font-weight': 600,
       fill: '#fff', 'text-anchor': 'middle'
     }));
 
     // Mini threshold bar inside score gate
-    const barY = gateY + 28;
-    const barX = cx - nodeW / 2 + 12;
-    const barW = nodeW - 24;
+    const barY = gateY + 24;
+    const barX = cx - nodeW / 2 + 10;
+    const barW = nodeW - 20;
     const segs = [
       { label: '0\u201314', pct: 14 / 30, color: '#C0270F' },
       { label: '15\u201319', pct: 5 / 30, color: '#7A4500' },
@@ -896,38 +904,36 @@
     let bx = barX;
     for (const seg of segs) {
       const sw = barW * seg.pct;
-      g.appendChild(svgRect(bx, barY, sw, 14, { fill: seg.color }));
-      g.appendChild(svgText(bx + sw / 2, barY + 7, seg.label, {
-        'font-family': fontFam, 'font-size': 8, 'font-weight': 600,
+      g.appendChild(svgRect(bx, barY, sw, 10, { fill: seg.color }));
+      g.appendChild(svgText(bx + sw / 2, barY + 5, seg.label, {
+        'font-family': fontFam, 'font-size': 5.5, 'font-weight': 600,
         fill: '#fff', 'text-anchor': 'middle', 'dominant-baseline': 'middle'
       }));
       bx += sw;
     }
 
     // ── Outcome fan ──
-    const fanY = 808;
-    arrowDown(g, cx, gateY + 56, fanY);
+    arrowDown(g, cx, gateY + gateH, fanY);
 
-    const fanBoxW = 118;
-    const fanBoxH = 54;
+    const fanBoxW = 110;
     const fanSpacing = (W - 20 - fanBoxW) / (cfg.outcomes.length - 1);
     const scoreRanges = ['0\u201314', '15\u201319', '20\u201324', '25\u201327', '28\u201330'];
 
     cfg.outcomes.forEach((o, i) => {
       const fx = 10 + i * fanSpacing;
-      g.appendChild(svgRect(fx, fanY, fanBoxW, fanBoxH, {
-        rx: 7, fill: o.bg, stroke: o.color, 'stroke-width': 1.5
+      g.appendChild(svgRect(fx, fanY, fanBoxW, fanH, {
+        rx: 6, fill: o.bg, stroke: o.color, 'stroke-width': 1.5
       }));
-      g.appendChild(svgText(fx + fanBoxW / 2, fanY + 14, o.emoji, {
-        'font-family': fontFam, 'font-size': 14, 'text-anchor': 'middle'
+      g.appendChild(svgText(fx + fanBoxW / 2, fanY + 12, o.emoji, {
+        'font-family': fontFam, 'font-size': 10, 'text-anchor': 'middle'
       }));
       const shortLabel = o.label.length > 18 ? o.label.slice(0, 17) + '\u2026' : o.label;
-      g.appendChild(svgText(fx + fanBoxW / 2, fanY + 30, shortLabel, {
-        'font-family': fontFam, 'font-size': 9, 'font-weight': 600,
+      g.appendChild(svgText(fx + fanBoxW / 2, fanY + 24, shortLabel, {
+        'font-family': fontFam, 'font-size': 6.5, 'font-weight': 600,
         fill: o.color, 'text-anchor': 'middle'
       }));
-      g.appendChild(svgText(fx + fanBoxW / 2, fanY + 43, scoreRanges[i], {
-        'font-family': fontFam, 'font-size': 9, fill: o.color,
+      g.appendChild(svgText(fx + fanBoxW / 2, fanY + 33, scoreRanges[i], {
+        'font-family': fontFam, 'font-size': 6.5, fill: o.color,
         'text-anchor': 'middle', opacity: 0.75
       }));
     });
@@ -982,7 +988,7 @@
       const tdLabel = document.createElement('td');
       tdLabel.textContent = q.label;
       tdLabel.style.fontWeight = '500';
-      tdLabel.style.fontSize = '12px';
+      tdLabel.style.fontSize = '9px';
       tr.appendChild(tdLabel);
 
       const tdOpts = document.createElement('td');
