@@ -16,7 +16,7 @@
     {
       "id": "q2",
       "label": "Business delivery confidence",
-      "hint": "How confident are you in the team's ability to deliver business outcomes? (Weighted heaviest)",
+      "hint": "How confident are you in the team's ability to deliver business outcomes?",
       "type": "single",
       "hardStop": true,
       "hardStopAnswer": 0,
@@ -29,7 +29,7 @@
     {
       "id": "q3",
       "label": "Ecosystem fit",
-      "hint": "Does this project fit into the Miden ecosystem? Select all that apply.",
+      "hint": "Does this project fit into the Miden ecosystem?",
       "type": "multi",
       "hardStop": true,
       "options": [

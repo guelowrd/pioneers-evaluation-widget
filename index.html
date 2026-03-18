@@ -847,12 +847,14 @@
       fill: '#fff', 'text-anchor': 'middle', 'dominant-baseline': 'middle'
     }));
 
+    const qs = cfg.questions;
+
     // ── Q1: Technical delivery confidence ──
     arrowDown(g, cx, startY + pillH, q1y);
     drawNode(g, cx - nodeW / 2, q1y, nodeW, nodeH,
       '#EEF3FA', '#B8CCE8',
-      'Q1 \u2014 Technical delivery confidence',
-      'How confident is the team in delivering the technical component?',
+      'Q1 \u2014 ' + qs[0].label,
+      qs[0].hint,
       '#1A3A5C');
     drawReject(g, q1y, '<60% \u2192 hard stop');
 
@@ -860,8 +862,8 @@
     arrowDown(g, cx, q1y + nodeH, q2y, '\u2265 1 pt \u2192 continue');
     drawNode(g, cx - nodeW / 2, q2y, nodeW, nodeH,
       '#EEF3FA', '#B8CCE8',
-      'Q2 \u2014 Business delivery confidence',
-      'How confident is the team in delivering business outcomes?',
+      'Q2 \u2014 ' + qs[1].label,
+      qs[1].hint,
       '#1A3A5C');
     drawReject(g, q2y, '<60% \u2192 hard stop');
 
@@ -869,8 +871,8 @@
     arrowDown(g, cx, q2y + nodeH, q3y, '\u2265 1 pt \u2192 continue');
     drawNode(g, cx - nodeW / 2, q3y, nodeW, nodeH,
       '#EEF3FA', '#B8CCE8',
-      'Q3 \u2014 Ecosystem fit (multi-select)',
-      'Does this project fit into the Miden ecosystem?',
+      'Q3 \u2014 ' + qs[2].label,
+      qs[2].hint,
       '#1A3A5C');
     drawReject(g, q3y, 'total = 0 \u2192 hard stop');
 
