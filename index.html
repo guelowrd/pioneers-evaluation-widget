@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pioneer Evaluation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #F5F5F5;
+      color: #1A1A1A;
+      padding: 24px 16px 48px;
+      min-height: 100vh;
+    }
+
+    .widget {
+      max-width: 680px;
+      margin: 0 auto;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+      overflow: hidden;
+    }
+
+    /* Header */
+    .header {
+      padding: 20px 28px;
+      border-bottom: 1px solid #EBEBEB;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .wordmark {
+      font-size: 20px;
+      font-weight: 700;
+      color: #FF5500;
+      letter-spacing: -0.5px;
+    }
+    .wordmark span { color: #1A1A1A; }
+    .header-title {
+      font-size: 13px;
+      font-weight: 500;
+      color: #888;
+      margin-left: auto;
+    }
+
+    /* Questions */
+    .questions { padding: 20px 28px; display: flex; flex-direction: column; gap: 22px; }
+
+    .question-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+    }
+
+    .question-label-col {
+      flex: 0 0 200px;
+      padding-top: 6px;
+    }
+    .question-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: #1A1A1A;
+      line-height: 1.4;
+    }
+    .question-hint {
+      font-size: 11.5px;
+      color: #888;
+      margin-top: 3px;
+      line-height: 1.4;
+    }
+
+    .question-options {
+      flex: 1;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: flex-start;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 6px 12px;
+      border-radius: 20px;
+      border: 1.5px solid #E0E0E0;
+      background: #FAFAFA;
+      font-size: 12.5px;
+      font-weight: 500;
+      color: #444;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s, color 0.15s, opacity 0.15s;
+      user-select: none;
+      white-space: nowrap;
+    }
+    .pill:hover { border-color: #FF5500; color: #FF5500; }
+    .pill.selected {
+      border-color: #FF5500;
+      background: #FFF3EE;
+      color: #CC3300;
+    }
+    .pill.dimmed { opacity: 0.3; pointer-events: none; }
+    .pill .pts-badge {
+      font-size: 11px;
+      font-weight: 600;
+      color: #FF5500;
+      background: #FFE8D9;
+      border-radius: 10px;
+      padding: 1px 6px;
+    }
+    .pill.selected .pts-badge { background: #FFCFB3; }
+
+    /* Score bar */
+    .score-section {
+      padding: 20px 28px;
+      border-top: 1px solid #EBEBEB;
+    }
+    .score-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 10px;
+    }
+    .score-label { font-size: 12px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 0.5px; }
+    .score-value { font-size: 22px; font-weight: 700; color: #1A1A1A; }
+    .score-max { font-size: 13px; color: #AAA; font-weight: 500; }
+
+    .bar-container { position: relative; }
+    .bar-track {
+      height: 10px;
+      background: #EBEBEB;
+      border-radius: 6px;
+      overflow: visible;
+      position: relative;
+    }
+    .bar-fill {
+      height: 100%;
+      background: #FF5500;
+      border-radius: 6px;
+      transition: width 0.25s ease;
+      min-width: 0;
+    }
+
+    .ticks {
+      position: relative;
+      height: 26px;
+      margin-top: 2px;
+    }
+    .tick {
+      position: absolute;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .tick-line {
+      width: 1.5px;
+      height: 6px;
+      background: #CCC;
+    }
+    .tick-label {
+      font-size: 10px;
+      color: #AAA;
+      font-weight: 500;
+      margin-top: 2px;
+    }
+
+    /* Outcome */
+    .outcome-section { padding: 0 28px 24px; }
+    .outcome-card {
+      border-radius: 10px;
+      padding: 16px 18px;
+      transition: background 0.25s, border-color 0.25s;
+      border: 1.5px solid transparent;
+    }
+    .outcome-top {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+    .outcome-emoji { font-size: 18px; }
+    .outcome-label { font-size: 15px; font-weight: 700; }
+    .outcome-desc { font-size: 12.5px; line-height: 1.5; opacity: 0.85; }
+
+    .special-warning {
+      margin-top: 10px;
+      font-size: 12px;
+      font-weight: 500;
+      color: #7A4500;
+      background: #FFF3CD;
+      border: 1px solid #FFD97D;
+      border-radius: 6px;
+      padding: 8px 12px;
+      display: none;
+    }
+    .special-warning.visible { display: block; }
+
+    /* Copy button */
+    .copy-section {
+      padding: 0 28px 28px;
+      display: flex;
+      justify-content: flex-end;
+    }
+    .copy-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 9px 18px;
+      border-radius: 8px;
+      border: 1.5px solid #E0E0E0;
+      background: #FAFAFA;
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      color: #444;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s, color 0.15s;
+    }
+    .copy-btn:hover:not(:disabled) { border-color: #FF5500; color: #FF5500; background: #FFF3EE; }
+    .copy-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .copy-btn.copied { border-color: #22A05B; color: #22A05B; background: #EEFAF3; }
+
+    .divider { border: none; border-top: 1px solid #EBEBEB; margin: 0 28px; }
+  </style>
+</head>
+<body>
+<div class="widget">
+  <div class="header">
+    <div class="wordmark">✦ <span>Miden</span></div>
+    <div class="header-title">Pioneer &amp; Grant Evaluation</div>
+  </div>
+
+  <div class="questions" id="questions"></div>
+
+  <hr class="divider" />
+
+  <div class="score-section">
+    <div class="score-header">
+      <div class="score-label">Score</div>
+      <div>
+        <span class="score-value" id="scoreValue">0</span>
+        <span class="score-max" id="scoreMax">/ 30</span>
+      </div>
+    </div>
+    <div class="bar-container">
+      <div class="bar-track">
+        <div class="bar-fill" id="barFill" style="width:0%"></div>
+      </div>
+      <div class="ticks" id="ticks"></div>
+    </div>
+  </div>
+
+  <div class="outcome-section">
+    <div class="outcome-card" id="outcomeCard">
+      <div class="outcome-top">
+        <span class="outcome-emoji" id="outcomeEmoji">—</span>
+        <span class="outcome-label" id="outcomeLabel">Answer all questions to see outcome</span>
+      </div>
+      <div class="outcome-desc" id="outcomeDesc"></div>
+    </div>
+    <div class="special-warning" id="specialWarning"></div>
+  </div>
+
+  <div class="copy-section">
+    <button class="copy-btn" id="copyBtn" disabled>
+      <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="5" y="5" width="8" height="9" rx="1.5" stroke="currentColor" stroke-width="1.4"/>
+        <path d="M3 10H2.5A1.5 1.5 0 011 8.5v-7A1.5 1.5 0 012.5 0h7A1.5 1.5 0 0111 1.5V2" stroke="currentColor" stroke-width="1.4"/>
+      </svg>
+      Copy evaluation
+    </button>
+  </div>
+</div>
+
+<script>
+(async () => {
+  const config = await fetch('./config.json').then(r => r.json());
+  const { questions, specialRule, outcomes, maxScore, thresholdTicks } = config;
+
+  // State
+  // single: state[qId] = { index, label, points } | null
+  // multi:  state[qId] = Set<optionIndex>
+  const state = {};
+  for (const q of questions) {
+    state[q.id] = q.type === 'multi' ? new Set() : null;
+  }
+
+  // ── DOM refs ──
+  const scoreValue  = document.getElementById('scoreValue');
+  const scoreMax    = document.getElementById('scoreMax');
+  const barFill     = document.getElementById('barFill');
+  const ticks       = document.getElementById('ticks');
+  const outcomeCard = document.getElementById('outcomeCard');
+  const outcomeEmoji = document.getElementById('outcomeEmoji');
+  const outcomeLabel = document.getElementById('outcomeLabel');
+  const outcomeDesc  = document.getElementById('outcomeDesc');
+  const specialWarning = document.getElementById('specialWarning');
+  const copyBtn     = document.getElementById('copyBtn');
+
+  scoreMax.textContent = `/ ${maxScore}`;
+
+  // ── Render ticks ──
+  for (const tick of thresholdTicks) {
+    const el = document.createElement('div');
+    el.className = 'tick';
+    el.style.left = `${(tick / maxScore) * 100}%`;
+    el.innerHTML = `<div class="tick-line"></div><div class="tick-label">${tick}</div>`;
+    ticks.appendChild(el);
+  }
+
+  // ── Render questions ──
+  const questionsEl = document.getElementById('questions');
+  for (const q of questions) {
+    const row = document.createElement('div');
+    row.className = 'question-row';
+
+    const labelCol = document.createElement('div');
+    labelCol.className = 'question-label-col';
+    labelCol.innerHTML = `<div class="question-label">${q.label}</div><div class="question-hint">${q.hint}</div>`;
+    row.appendChild(labelCol);
+
+    const optionsEl = document.createElement('div');
+    optionsEl.className = 'question-options';
+    optionsEl.id = `opts-${q.id}`;
+
+    for (let i = 0; i < q.options.length; i++) {
+      const opt = q.options[i];
+      const pill = document.createElement('button');
+      pill.className = 'pill';
+      pill.dataset.qid = q.id;
+      pill.dataset.idx = i;
+      pill.setAttribute('type', 'button');
+
+      const label = document.createTextNode(opt.label);
+      pill.appendChild(label);
+
+      if (opt.points > 0) {
+        const badge = document.createElement('span');
+        badge.className = 'pts-badge';
+        badge.textContent = `+${opt.points}`;
+        pill.appendChild(badge);
+      }
+
+      if (q.type === 'single') {
+        pill.addEventListener('click', () => handleSingle(q, i, opt));
+      } else {
+        pill.addEventListener('click', () => handleMulti(q, i, opt));
+      }
+
+      optionsEl.appendChild(pill);
+    }
+
+    row.appendChild(optionsEl);
+    questionsEl.appendChild(row);
+  }
+
+  // ── Handlers ──
+  function handleSingle(q, idx, opt) {
+    const prev = state[q.id];
+    if (prev && prev.index === idx) {
+      state[q.id] = null; // deselect
+    } else {
+      state[q.id] = { index: idx, label: opt.label, points: opt.points };
+    }
+    renderSinglePills(q);
+    update();
+  }
+
+  function handleMulti(q, idx, opt) {
+    const sel = state[q.id];
+    const exclusiveIdx = q.options.findIndex(o => o.exclusive);
+
+    if (opt.exclusive) {
+      // Toggle exclusive
+      if (sel.has(idx)) {
+        sel.delete(idx);
+      } else {
+        sel.clear();
+        sel.add(idx);
+      }
+    } else {
+      // Non-exclusive clicked
+      if (sel.has(idx)) {
+        sel.delete(idx);
+      } else {
+        // Remove exclusive if active
+        if (exclusiveIdx !== -1) sel.delete(exclusiveIdx);
+        sel.add(idx);
+      }
+    }
+
+    renderMultiPills(q);
+    update();
+  }
+
+  function renderSinglePills(q) {
+    const container = document.getElementById(`opts-${q.id}`);
+    const pills = container.querySelectorAll('.pill');
+    pills.forEach((pill, i) => {
+      pill.classList.toggle('selected', state[q.id] !== null && state[q.id].index === i);
+    });
+  }
+
+  function renderMultiPills(q) {
+    const sel = state[q.id];
+    const exclusiveIdx = q.options.findIndex(o => o.exclusive);
+    const exclusiveActive = exclusiveIdx !== -1 && sel.has(exclusiveIdx);
+    const container = document.getElementById(`opts-${q.id}`);
+    const pills = container.querySelectorAll('.pill');
+    pills.forEach((pill, i) => {
+      const isSelected = sel.has(i);
+      pill.classList.toggle('selected', isSelected);
+      // Dim non-exclusive options when exclusive is active
+      if (exclusiveActive && !q.options[i].exclusive) {
+        pill.classList.add('dimmed');
+      } else {
+        pill.classList.remove('dimmed');
+      }
+    });
+  }
+
+  // ── Score calc ──
+  function calcScore() {
+    let total = 0;
+    for (const q of questions) {
+      if (q.type === 'single') {
+        if (state[q.id]) total += state[q.id].points;
+      } else {
+        const sel = state[q.id];
+        for (const idx of sel) {
+          total += q.options[idx].points;
+        }
+      }
+    }
+    return total;
+  }
+
+  function getMultiPoints(q) {
+    let pts = 0;
+    for (const idx of state[q.id]) pts += q.options[idx].points;
+    return pts;
+  }
+
+  // ── Special rule ──
+  function checkSpecialRule(rawScore) {
+    const q3 = questions.find(q => q.id === specialRule.triggerQ3Id);
+    const q4 = questions.find(q => q.id === specialRule.triggerQ4Id);
+    if (!q3 || !q4) return { triggered: false };
+
+    const q3pts = state[q3.id] ? state[q3.id].points : null;
+    const q4pts = getMultiPoints(q4);
+
+    // Trigger if Q3 answered with 0 pts AND Q4 points = 0
+    if (q3pts === null) return { triggered: false }; // Q3 not answered
+    const triggered = q3pts === 0 && q4pts === 0;
+    return { triggered };
+  }
+
+  // ── All answered? ──
+  function allAnswered() {
+    for (const q of questions) {
+      if (q.type === 'single') {
+        if (state[q.id] === null) return false;
+      } else {
+        // multi is optional? Per plan: copy disabled until all 7 answered
+        // Q4 multi counts as answered if at least 1 selected
+        if (state[q.id].size === 0) return false;
+      }
+    }
+    return true;
+  }
+
+  // ── Get outcome by score ──
+  function getOutcome(score) {
+    for (const o of outcomes) {
+      if (score >= o.minScore && score <= o.maxScore) return o;
+    }
+    return outcomes[0];
+  }
+
+  // ── Update UI ──
+  function update() {
+    const raw = calcScore();
+    const { triggered } = checkSpecialRule(raw);
+
+    let effectiveScore = raw;
+    let cappedOutcome = null;
+    if (triggered) {
+      cappedOutcome = outcomes.find(o => o.id === specialRule.capOutcomeId);
+    }
+
+    const outcome = cappedOutcome && getOutcome(raw).minScore > cappedOutcome.maxScore
+      ? cappedOutcome
+      : getOutcome(raw);
+
+    // Score display
+    scoreValue.textContent = raw;
+    barFill.style.width = `${Math.min(raw / maxScore, 1) * 100}%`;
+
+    // Outcome card
+    outcomeCard.style.background = outcome.bg || '#F5F5F5';
+    outcomeCard.style.borderColor = outcome.color || 'transparent';
+    outcomeEmoji.textContent = outcome.emoji || '—';
+    outcomeLabel.textContent = outcome.label;
+    outcomeLabel.style.color = outcome.color || '#1A1A1A';
+    outcomeDesc.textContent = outcome.description || '';
+    outcomeDesc.style.color = outcome.color || '#444';
+
+    // Special warning
+    if (triggered && cappedOutcome && getOutcome(raw).minScore > cappedOutcome.maxScore) {
+      specialWarning.textContent = specialRule.warning;
+      specialWarning.classList.add('visible');
+    } else {
+      specialWarning.classList.remove('visible');
+    }
+
+    // Copy button
+    copyBtn.disabled = !allAnswered();
+  }
+
+  // ── Copy ──
+  copyBtn.addEventListener('click', () => {
+    const raw = calcScore();
+    const { triggered } = checkSpecialRule(raw);
+    let cappedOutcome = null;
+    if (triggered) {
+      cappedOutcome = outcomes.find(o => o.id === specialRule.capOutcomeId);
+    }
+    const outcome = cappedOutcome && getOutcome(raw).minScore > cappedOutcome.maxScore
+      ? cappedOutcome
+      : getOutcome(raw);
+
+    const date = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    const sep = '━'.repeat(40);
+
+    let lines = [`Pioneer Evaluation — ${date}`, sep, ''];
+
+    for (const q of questions) {
+      lines.push(`${q.label}`);
+      if (q.type === 'single') {
+        const s = state[q.id];
+        lines.push(`→ ${s.label} (+${s.points} pts)`);
+      } else {
+        const sel = state[q.id];
+        if (sel.size === 0) {
+          lines.push('→ (none selected)');
+        } else {
+          for (const idx of sel) {
+            const opt = q.options[idx];
+            lines.push(`→ ${opt.label} (+${opt.points} pts)`);
+          }
+        }
+      }
+      lines.push('');
+    }
+
+    lines.push(sep);
+    lines.push(`TOTAL SCORE: ${raw} / ${maxScore}`);
+    lines.push(`OUTCOME: ${outcome.label}`);
+    lines.push(outcome.description);
+    if (triggered && cappedOutcome && getOutcome(raw).minScore > cappedOutcome.maxScore) {
+      lines.push(specialRule.warning);
+    }
+
+    navigator.clipboard.writeText(lines.join('\n')).then(() => {
+      copyBtn.textContent = 'Copied ✓';
+      copyBtn.classList.add('copied');
+      setTimeout(() => {
+        copyBtn.innerHTML = `<svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="5" y="5" width="8" height="9" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M3 10H2.5A1.5 1.5 0 011 8.5v-7A1.5 1.5 0 012.5 0h7A1.5 1.5 0 0111 1.5V2" stroke="currentColor" stroke-width="1.4"/></svg> Copy evaluation`;
+        copyBtn.classList.remove('copied');
+      }, 2000);
+    });
+  });
+
+  // Initial render
+  update();
+})();
+</script>
+</body>
+</html>

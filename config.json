@@ -1,0 +1,142 @@
+{
+  "questions": [
+    {
+      "id": "q1",
+      "label": "Technical delivery confidence",
+      "hint": "How confident are you in the team's ability to deliver the technical component?",
+      "type": "single",
+      "options": [
+        { "label": "<60% sure", "points": 0 },
+        { "label": "60–90% sure", "points": 2 },
+        { "label": ">90% sure", "points": 4 }
+      ]
+    },
+    {
+      "id": "q2",
+      "label": "Business delivery confidence",
+      "hint": "How confident are you in the team's ability to deliver business outcomes? (Weighted heaviest)",
+      "type": "single",
+      "options": [
+        { "label": "<60% sure", "points": 0 },
+        { "label": "60–90% sure", "points": 3 },
+        { "label": ">90% sure", "points": 6 }
+      ]
+    },
+    {
+      "id": "q3",
+      "label": "Practical privacy / compliance fit",
+      "hint": "Does the project genuinely benefit from Miden's privacy or compliance features?",
+      "type": "single",
+      "options": [
+        { "label": "No", "points": 0 },
+        { "label": "Maybe", "points": 2 },
+        { "label": "Yes", "points": 4 }
+      ]
+    },
+    {
+      "id": "q4",
+      "label": "Guardian leverage",
+      "hint": "Does this project leverage or benefit from Guardian? Select all that apply.",
+      "type": "multi",
+      "options": [
+        { "label": "No Guardian connection", "points": 0, "exclusive": true },
+        { "label": "Yes — some other way", "points": 2 },
+        { "label": "Yes — state / wallet backup", "points": 2 },
+        { "label": "Yes — compliance (KYC/AML/Predicate)", "points": 2 }
+      ]
+    },
+    {
+      "id": "q5",
+      "label": "Wallet / narrative fit",
+      "hint": "Does this project align with the wallet narrative and Miden's ecosystem story?",
+      "type": "single",
+      "options": [
+        { "label": "No", "points": 0 },
+        { "label": "Maybe", "points": 1 },
+        { "label": "Yes", "points": 2 }
+      ]
+    },
+    {
+      "id": "q6",
+      "label": "Product already built?",
+      "hint": "What is the current build status of the product?",
+      "type": "single",
+      "options": [
+        { "label": "Nothing yet", "points": 0 },
+        { "label": "Prototype exists", "points": 1 },
+        { "label": "Live product in production", "points": 4 }
+      ]
+    },
+    {
+      "id": "q7",
+      "label": "Similar Pioneer / partner exists?",
+      "hint": "Is anyone else building a similar solution in the ecosystem?",
+      "type": "single",
+      "options": [
+        { "label": "2+ teams already building this", "points": 0 },
+        { "label": "1 team already building this", "points": 2 },
+        { "label": "No team building this", "points": 4 }
+      ]
+    }
+  ],
+  "specialRule": {
+    "triggerQ3Id": "q3",
+    "triggerQ4Id": "q4",
+    "capOutcomeId": "needs-discussion",
+    "warning": "⚠️ Special rule applied: Guardian = 0 and compliance fit = 0 — outcome capped at \"Needs further discussion\""
+  },
+  "outcomes": [
+    {
+      "id": "no",
+      "label": "No — not this stage",
+      "emoji": "🔴",
+      "minScore": 0,
+      "maxScore": 14,
+      "description": "This project does not meet the threshold for Pioneer support at this stage.",
+      "bg": "#FFF0EE",
+      "color": "#C0270F"
+    },
+    {
+      "id": "needs-discussion",
+      "label": "Needs further discussion",
+      "emoji": "🟡",
+      "minScore": 15,
+      "maxScore": 19,
+      "description": "There is potential here, but more information or alignment is needed before a decision.",
+      "bg": "#FFF8EE",
+      "color": "#7A4500"
+    },
+    {
+      "id": "pioneer-tech",
+      "label": "Yes — Pioneer (technical support only, no grant)",
+      "emoji": "🟢",
+      "minScore": 20,
+      "maxScore": 24,
+      "description": "Qualifies for Pioneer with technical support. No grant at this stage.",
+      "bg": "#EEFAF3",
+      "color": "#0A5C35"
+    },
+    {
+      "id": "pioneer-grant",
+      "label": "Yes — Pioneer ($10k POC → $100k+ milestone-based grant)",
+      "emoji": "🟢",
+      "minScore": 25,
+      "maxScore": 27,
+      "description": "Qualifies for Pioneer with a $10k POC grant, with potential for $100k+ milestone-based funding.",
+      "bg": "#D4F0E2",
+      "color": "#063D23"
+    },
+    {
+      "id": "strategic",
+      "label": "Yes — Strategic partner discussion",
+      "emoji": "🟣",
+      "minScore": 28,
+      "maxScore": 30,
+      "description": "Qualifies for strategic partner discussion (like NEAR Intents, OZ, Self).",
+      "bg": "#F3F0FF",
+      "color": "#3D2D8A"
+    }
+  ],
+  "maxScore": 30,
+  "thresholdTicks": [15, 20, 25, 28]
+}
