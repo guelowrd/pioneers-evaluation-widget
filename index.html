@@ -745,7 +745,7 @@
     const nodeW   = 340;
     const nodeH   = 40;   // was 60 (−33%)
     const gap     = 36;   // was 80 (−55%)
-    const gateH   = 38;
+    const gateH   = 44;
     const fontFam = 'Inter, sans-serif';
 
     // Y layout (computed from scaled constants)
@@ -756,7 +756,7 @@
     const q3y     = q2y  + nodeH + gap;            // 222
     const q45y    = q3y  + nodeH + gap;            // 298
     const gateY   = q45y + nodeH + gap;            // 374
-    const fanH    = 40;
+    const fanH    = 46;
     const fanY    = gateY + gateH + 30;            // 442
     const H       = fanY + fanH + 8;               // 490
 
@@ -885,13 +885,17 @@
     // ── Score gate ──
     arrowDown(g, cx, q45y + nodeH, gateY);
     g.appendChild(svgRect(cx - nodeW / 2, gateY, nodeW, gateH, { rx: 6, fill: '#1A1A1A' }));
-    g.appendChild(svgText(cx, gateY + 12, 'Total score + outcome (max 30 pts)', {
-      'font-family': fontFam, 'font-size': 8.5, 'font-weight': 600,
-      fill: '#fff', 'text-anchor': 'middle'
+    g.appendChild(svgText(cx, gateY + 10, 'Do we proceed with this team?', {
+      'font-family': fontFam, 'font-size': 9, 'font-weight': 700,
+      fill: '#fff', 'text-anchor': 'middle', 'dominant-baseline': 'middle'
+    }));
+    g.appendChild(svgText(cx, gateY + 20, 'Total score \u2014 max 30 pts', {
+      'font-family': fontFam, 'font-size': 7, 'font-weight': 400,
+      fill: '#fff', 'text-anchor': 'middle', 'dominant-baseline': 'middle', opacity: 0.7
     }));
 
     // Mini threshold bar inside score gate
-    const barY = gateY + 24;
+    const barY = gateY + 30;
     const barX = cx - nodeW / 2 + 10;
     const barW = nodeW - 20;
     const segs = [
@@ -915,27 +919,49 @@
     // ── Outcome fan ──
     arrowDown(g, cx, gateY + gateH, fanY);
 
-    const fanBoxW = 110;
+    const fanBoxW = 130;
     const fanSpacing = (W - 20 - fanBoxW) / (cfg.outcomes.length - 1);
-    const scoreRanges = ['0\u201314', '15\u201319', '20\u201324', '25\u201327', '28\u201330'];
+    // Custom display labels (two lines where needed) + score range
+    const fanItems = [
+      { line1: 'No \u2014 not at this stage',        line2: null,                         range: '0\u201314'  },
+      { line1: 'Needs further discussion',            line2: '\u2192 team chat',            range: '15\u201319' },
+      { line1: 'Yes \u2014 tech support only',        line2: '\u2192 team chat',            range: '20\u201324' },
+      { line1: 'Yes \u2014 $10k POC then grant',      line2: '\u2192 team chat',            range: '25\u201327' },
+      { line1: 'Yes \u2014 strategic',                line2: 'Bobbin / Azeem / Dominik',   range: '28\u201330' },
+    ];
 
     cfg.outcomes.forEach((o, i) => {
-      const fx = 10 + i * fanSpacing;
+      const fx   = 10 + i * fanSpacing;
+      const item = fanItems[i];
       g.appendChild(svgRect(fx, fanY, fanBoxW, fanH, {
         rx: 6, fill: o.bg, stroke: o.color, 'stroke-width': 1.5
       }));
-      g.appendChild(svgText(fx + fanBoxW / 2, fanY + 12, o.emoji, {
-        'font-family': fontFam, 'font-size': 10, 'text-anchor': 'middle'
+      g.appendChild(svgText(fx + fanBoxW / 2, fanY + 10, o.emoji, {
+        'font-family': fontFam, 'font-size': 10, 'text-anchor': 'middle', 'dominant-baseline': 'middle'
       }));
-      const shortLabel = o.label.length > 18 ? o.label.slice(0, 17) + '\u2026' : o.label;
-      g.appendChild(svgText(fx + fanBoxW / 2, fanY + 24, shortLabel, {
-        'font-family': fontFam, 'font-size': 6.5, 'font-weight': 600,
-        fill: o.color, 'text-anchor': 'middle'
-      }));
-      g.appendChild(svgText(fx + fanBoxW / 2, fanY + 33, scoreRanges[i], {
-        'font-family': fontFam, 'font-size': 6.5, fill: o.color,
-        'text-anchor': 'middle', opacity: 0.75
-      }));
+      if (item.line2) {
+        g.appendChild(svgText(fx + fanBoxW / 2, fanY + 21, item.line1, {
+          'font-family': fontFam, 'font-size': 6.5, 'font-weight': 600,
+          fill: o.color, 'text-anchor': 'middle', 'dominant-baseline': 'middle'
+        }));
+        g.appendChild(svgText(fx + fanBoxW / 2, fanY + 30, item.line2, {
+          'font-family': fontFam, 'font-size': 6.5, 'font-weight': 600,
+          fill: o.color, 'text-anchor': 'middle', 'dominant-baseline': 'middle'
+        }));
+        g.appendChild(svgText(fx + fanBoxW / 2, fanY + 40, item.range, {
+          'font-family': fontFam, 'font-size': 6.5, fill: o.color,
+          'text-anchor': 'middle', 'dominant-baseline': 'middle', opacity: 0.75
+        }));
+      } else {
+        g.appendChild(svgText(fx + fanBoxW / 2, fanY + 25, item.line1, {
+          'font-family': fontFam, 'font-size': 6.5, 'font-weight': 600,
+          fill: o.color, 'text-anchor': 'middle', 'dominant-baseline': 'middle'
+        }));
+        g.appendChild(svgText(fx + fanBoxW / 2, fanY + 37, item.range, {
+          'font-family': fontFam, 'font-size': 6.5, fill: o.color,
+          'text-anchor': 'middle', 'dominant-baseline': 'middle', opacity: 0.75
+        }));
+      }
     });
 
     return svg;
@@ -945,7 +971,7 @@
     const { questions, outcomes } = cfg;
 
     const badgeColors = [
-      { bg: '#FF5500', color: '#fff' },
+      { bg: '#B8CCE8', color: '#1A3A5C' },
       { bg: '#B8CCE8', color: '#1A3A5C' },
       { bg: '#B8CCE8', color: '#1A3A5C' },
       { bg: '#B8CCE8', color: '#1A3A5C' },
