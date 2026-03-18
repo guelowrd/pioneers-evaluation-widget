@@ -19,7 +19,7 @@
     }
 
     .widget {
-      max-width: 680px;
+      max-width: 1200px;
       margin: 0 auto;
       background: #fff;
       border-radius: 12px;
@@ -365,8 +365,7 @@
       </div>
       <div class="outcome-desc" id="outcomeDesc"></div>
     </div>
-    <div class="hard-stop-note" id="hardStopNote">⛔ Insufficient business confidence is a hard stop.</div>
-    <div class="special-warning" id="specialWarning"></div>
+    <div class="hard-stop-note" id="hardStopNote"></div>
   </div>
 
   <div class="copy-section">
@@ -388,7 +387,7 @@
 <script>
 (async () => {
   const config = await fetch('./config.json').then(r => r.json());
-  const { questions, specialRule, outcomes, maxScore, thresholdTicks } = config;
+  const { questions, outcomes, maxScore, thresholdTicks } = config;
 
   // State
   const state = {};
@@ -405,7 +404,6 @@
   const outcomeEmoji   = document.getElementById('outcomeEmoji');
   const outcomeLabel   = document.getElementById('outcomeLabel');
   const outcomeDesc    = document.getElementById('outcomeDesc');
-  const specialWarning = document.getElementById('specialWarning');
   const hardStopNote   = document.getElementById('hardStopNote');
   const copyBtn        = document.getElementById('copyBtn');
 
@@ -532,11 +530,19 @@
 
   // ── Hard stop ──
   function isHardStop() {
-    for (const q of questions) {
+    for (let i = 0; i < questions.length; i++) {
+      const q = questions[i];
       if (!q.hardStop) continue;
-      const s = state[q.id];
-      if (s === null) continue; // not answered yet
-      if (s.points === q.hardStopAnswer) return { triggered: true, qId: q.id };
+      if (q.type === 'single') {
+        const s = state[q.id];
+        if (s === null) continue; // unanswered
+        if (s.points === q.hardStopAnswer) return { triggered: true, qId: q.id, qIdx: i };
+      } else {
+        // multi: hard stop if user made a selection and total pts = 0
+        const sel = state[q.id];
+        if (sel.size === 0) continue; // unanswered
+        if (getMultiPoints(q) === 0) return { triggered: true, qId: q.id, qIdx: i };
+      }
     }
     return { triggered: false };
   }
@@ -561,20 +567,6 @@
     let pts = 0;
     for (const idx of state[q.id]) pts += q.options[idx].points;
     return pts;
-  }
-
-  // ── Special rule ──
-  function checkSpecialRule(rawScore) {
-    const q3 = questions.find(q => q.id === specialRule.triggerQ3Id);
-    const q4 = questions.find(q => q.id === specialRule.triggerQ4Id);
-    if (!q3 || !q4) return { triggered: false };
-
-    const q3pts = state[q3.id] ? state[q3.id].points : null;
-    const q4pts = getMultiPoints(q4);
-
-    if (q3pts === null) return { triggered: false };
-    const triggered = q3pts === 0 && q4pts === 0;
-    return { triggered };
   }
 
   // ── All answered? ──
@@ -604,6 +596,7 @@
 
     if (hardStop.triggered) {
       // Force 🔴 outcome
+      const q = questions[hardStop.qIdx];
       const forceOutcome = outcomes[0];
       scoreValue.textContent = raw;
       barFill.style.width = `${Math.min(raw / maxScore, 1) * 100}%`;
@@ -616,16 +609,16 @@
       outcomeDesc.textContent = forceOutcome.description || '';
       outcomeDesc.style.color = forceOutcome.color || '#444';
 
+      hardStopNote.textContent = `\u26d4 "${q.label}" scored 0 \u2014 hard stop.`;
       hardStopNote.classList.add('visible');
-      specialWarning.classList.remove('visible');
 
-      // Lock all question rows except the hard-stop question row
-      for (const q of questions) {
-        const row = questionRows[q.id];
-        if (q.id === hardStop.qId) {
-          row.classList.remove('locked');
-        } else {
+      // Lock only questions after the hard-stop question; unlock those before/at it
+      for (let i = 0; i < questions.length; i++) {
+        const row = questionRows[questions[i].id];
+        if (i > hardStop.qIdx) {
           row.classList.add('locked');
+        } else {
+          row.classList.remove('locked');
         }
       }
 
@@ -639,15 +632,7 @@
     }
     hardStopNote.classList.remove('visible');
 
-    const { triggered } = checkSpecialRule(raw);
-    let cappedOutcome = null;
-    if (triggered) {
-      cappedOutcome = outcomes.find(o => o.id === specialRule.capOutcomeId);
-    }
-
-    const outcome = cappedOutcome && getOutcome(raw).minScore > cappedOutcome.maxScore
-      ? cappedOutcome
-      : getOutcome(raw);
+    const outcome = getOutcome(raw);
 
     scoreValue.textContent = raw;
     barFill.style.width = `${Math.min(raw / maxScore, 1) * 100}%`;
@@ -660,27 +645,13 @@
     outcomeDesc.textContent = outcome.description || '';
     outcomeDesc.style.color = outcome.color || '#444';
 
-    if (triggered && cappedOutcome && getOutcome(raw).minScore > cappedOutcome.maxScore) {
-      specialWarning.textContent = specialRule.warning;
-      specialWarning.classList.add('visible');
-    } else {
-      specialWarning.classList.remove('visible');
-    }
-
     copyBtn.disabled = !allAnswered();
   }
 
   // ── Copy ──
   copyBtn.addEventListener('click', () => {
     const raw = calcScore();
-    const { triggered } = checkSpecialRule(raw);
-    let cappedOutcome = null;
-    if (triggered) {
-      cappedOutcome = outcomes.find(o => o.id === specialRule.capOutcomeId);
-    }
-    const outcome = cappedOutcome && getOutcome(raw).minScore > cappedOutcome.maxScore
-      ? cappedOutcome
-      : getOutcome(raw);
+    const outcome = getOutcome(raw);
 
     const date = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
     const sep = '━'.repeat(40);
@@ -710,9 +681,6 @@
     lines.push(`TOTAL SCORE: ${raw} / ${maxScore}`);
     lines.push(`OUTCOME: ${outcome.label}`);
     lines.push(outcome.description);
-    if (triggered && cappedOutcome && getOutcome(raw).minScore > cappedOutcome.maxScore) {
-      lines.push(specialRule.warning);
-    }
 
     navigator.clipboard.writeText(lines.join('\n')).then(() => {
       copyBtn.textContent = 'Copied ✓';
@@ -773,7 +741,7 @@
 
   function buildFlowchartSVG(cfg) {
     const W = 720;
-    const H = 820;
+    const H = 900;
     const cx = 360;
     const nodeW = 340;
     const nodeH = 60;
@@ -785,7 +753,7 @@
       style: 'display:block; margin-top:16px;'
     });
 
-    // Arrow marker
+    // Arrow markers
     const defs = svgEl('defs');
     const marker = svgEl('marker', {
       id: 'arrow', markerWidth: '8', markerHeight: '8',
@@ -793,13 +761,6 @@
     });
     marker.appendChild(svgPath('M0,0 L0,6 L8,3 z', { fill: '#999' }));
     defs.appendChild(marker);
-
-    const markerAmber = svgEl('marker', {
-      id: 'arrowAmber', markerWidth: '8', markerHeight: '8',
-      refX: '6', refY: '3', orient: 'auto'
-    });
-    markerAmber.appendChild(svgPath('M0,0 L0,6 L8,3 z', { fill: '#FFD97D' }));
-    defs.appendChild(markerAmber);
 
     const markerRed = svgEl('marker', {
       id: 'arrowRed', markerWidth: '8', markerHeight: '8',
@@ -839,6 +800,29 @@
       }
     }
 
+    // Helper: draw a left-branch reject box for a gate at gateY
+    const rejectX = 5;
+    const rejectW = 120;
+    const rejectH = 44;
+    function drawReject(g, gateY, branchLabel) {
+      const rY = gateY + 8;
+      g.appendChild(svgLine(cx - nodeW / 2, gateY + nodeH / 2, rejectX + rejectW, rY + rejectH / 2, {
+        stroke: '#C0270F', 'stroke-width': 1.5, 'marker-end': 'url(#arrowRed)'
+      }));
+      g.appendChild(svgText((cx - nodeW / 2 + rejectX + rejectW) / 2, rY - 10, branchLabel, {
+        'font-family': fontFam, 'font-size': 9, fill: '#C0270F', 'text-anchor': 'middle'
+      }));
+      g.appendChild(svgRect(rejectX, rY, rejectW, rejectH, { rx: 7, fill: '#FFF0EE', stroke: '#C0270F', 'stroke-width': 1.5 }));
+      g.appendChild(svgText(rejectX + rejectW / 2, rY + rejectH / 2 - 6, '\uD83D\uDD34 Not at this stage', {
+        'font-family': fontFam, 'font-size': 10, 'font-weight': 600,
+        fill: '#C0270F', 'text-anchor': 'middle', 'dominant-baseline': 'middle'
+      }));
+      g.appendChild(svgText(rejectX + rejectW / 2, rY + rejectH / 2 + 9, '(hard stop)', {
+        'font-family': fontFam, 'font-size': 9.5, fill: '#C0270F',
+        'text-anchor': 'middle', 'dominant-baseline': 'middle', opacity: 0.75
+      }));
+    }
+
     const g = svgEl('g');
     svg.appendChild(g);
 
@@ -850,108 +834,48 @@
       fill: '#fff', 'text-anchor': 'middle', 'dominant-baseline': 'middle'
     }));
 
-    // ── Q1 (hard-stop gate): Business delivery confidence ──
-    const q1y = 72;
+    // ── Q1 gate: Technical delivery confidence ──
+    const q1y = 132;
     arrowDown(g, cx, startY + 32, q1y);
     drawNode(g, cx - nodeW / 2, q1y, nodeW, nodeH,
       '#EEF3FA', '#B8CCE8',
-      'Q1 — Business delivery confidence',
-      'How confident is the team in delivering business outcomes?',
+      'Q1 \u2014 Technical delivery confidence',
+      'How confident is the team in delivering the technical component?',
       '#1A3A5C');
+    drawReject(g, q1y, '<60% \u2192 hard stop');
 
-    // Left branch: hard stop reject
-    const rejectX = 80;
-    const rejectY = q1y + 10;
-    const rejectW = 130;
-    const rejectH = 44;
-    // Arrow left
-    g.appendChild(svgLine(cx - nodeW / 2, q1y + nodeH / 2, rejectX + rejectW, rejectY + rejectH / 2, {
-      stroke: '#C0270F', 'stroke-width': 1.5, 'marker-end': 'url(#arrowRed)'
-    }));
-    g.appendChild(svgText((cx - nodeW / 2 + rejectX + rejectW) / 2, rejectY - 10, '<60% → hard stop', {
-      'font-family': fontFam, 'font-size': 9, fill: '#C0270F', 'text-anchor': 'middle'
-    }));
-    g.appendChild(svgRect(rejectX, rejectY, rejectW, rejectH, { rx: 7, fill: '#FFF0EE', stroke: '#C0270F', 'stroke-width': 1.5 }));
-    g.appendChild(svgText(rejectX + rejectW / 2, rejectY + rejectH / 2 - 6, '🔴 Not at this stage', {
-      'font-family': fontFam, 'font-size': 11, 'font-weight': 600,
-      fill: '#C0270F', 'text-anchor': 'middle', 'dominant-baseline': 'middle'
-    }));
-    g.appendChild(svgText(rejectX + rejectW / 2, rejectY + rejectH / 2 + 9, '(hard stop)', {
-      'font-family': fontFam, 'font-size': 9.5, fill: '#C0270F',
-      'text-anchor': 'middle', 'dominant-baseline': 'middle', opacity: 0.75
-    }));
-
-    // ── Q2: Guardian leverage ──
-    const q2y = q1y + nodeH + 50;
-    arrowDown(g, cx, q1y + nodeH, q2y, '≥ 1 pt → continue');
+    // ── Q2 gate: Business delivery confidence ──
+    const q2y = 272;
+    arrowDown(g, cx, q1y + nodeH, q2y, '\u2265 1 pt \u2192 continue');
     drawNode(g, cx - nodeW / 2, q2y, nodeW, nodeH,
       '#EEF3FA', '#B8CCE8',
-      'Q2 — Guardian leverage',
-      'Does the project leverage Guardian? (multi-select, points stack)',
+      'Q2 \u2014 Business delivery confidence',
+      'How confident is the team in delivering business outcomes?',
       '#1A3A5C');
+    drawReject(g, q2y, '<60% \u2192 hard stop');
 
-    // ── Q3: Privacy / compliance fit ──
-    const q3y = q2y + nodeH + 50;
-    arrowDown(g, cx, q2y + nodeH, q3y);
+    // ── Q3 gate: Ecosystem fit ──
+    const q3y = 412;
+    arrowDown(g, cx, q2y + nodeH, q3y, '\u2265 1 pt \u2192 continue');
     drawNode(g, cx - nodeW / 2, q3y, nodeW, nodeH,
       '#EEF3FA', '#B8CCE8',
-      'Q3 — Practical privacy / compliance fit',
-      "Does the project genuinely benefit from Miden's privacy features?",
+      'Q3 \u2014 Ecosystem fit (multi-select)',
+      'Does this project fit into the Miden ecosystem?',
       '#1A3A5C');
+    drawReject(g, q3y, 'total = 0 \u2192 hard stop');
 
-    // Right branch: capped outcome
-    const cappedX = 550;
-    const cappedY = q3y + 8;
-    const cappedW = 148;
-    const cappedH = 52;
-    g.appendChild(svgLine(cx + nodeW / 2, q3y + nodeH / 2, cappedX, cappedY + cappedH / 2, {
-      stroke: '#FFD97D', 'stroke-width': 1.5, 'marker-end': 'url(#arrowAmber)'
-    }));
-    g.appendChild(svgText((cx + nodeW / 2 + cappedX) / 2, cappedY - 10, 'Both = 0', {
-      'font-family': fontFam, 'font-size': 9, fill: '#7A4500', 'text-anchor': 'middle'
-    }));
-    g.appendChild(svgRect(cappedX, cappedY, cappedW, cappedH, { rx: 7, fill: '#FFF8EE', stroke: '#FFD97D', 'stroke-width': 1.5 }));
-    g.appendChild(svgText(cappedX + cappedW / 2, cappedY + 14, '🟡 Capped', {
-      'font-family': fontFam, 'font-size': 11, 'font-weight': 600,
-      fill: '#7A4500', 'text-anchor': 'middle'
-    }));
-    g.appendChild(svgText(cappedX + cappedW / 2, cappedY + 28, 'Needs further', {
-      'font-family': fontFam, 'font-size': 10, fill: '#7A4500', 'text-anchor': 'middle'
-    }));
-    g.appendChild(svgText(cappedX + cappedW / 2, cappedY + 41, 'discussion', {
-      'font-family': fontFam, 'font-size': 10, fill: '#7A4500', 'text-anchor': 'middle'
-    }));
-
-    // ── Q4: Product already built? ──
-    const q4y = q3y + nodeH + 50;
-    arrowDown(g, cx, q3y + nodeH, q4y, 'not both = 0 → continue');
-    drawNode(g, cx - nodeW / 2, q4y, nodeW, nodeH,
+    // ── Q4 + Q5 combined ──
+    const q45y = 552;
+    arrowDown(g, cx, q3y + nodeH, q45y, '\u2265 1 pt \u2192 continue');
+    drawNode(g, cx - nodeW / 2, q45y, nodeW, nodeH,
       '#EEF3FA', '#B8CCE8',
-      'Q4 — Product already built?',
-      'What is the current build status of the product?',
-      '#1A3A5C');
-
-    // ── Q5: Similar Pioneer / partner exists? ──
-    const q5y = q4y + nodeH + 50;
-    arrowDown(g, cx, q4y + nodeH, q5y);
-    drawNode(g, cx - nodeW / 2, q5y, nodeW, nodeH,
-      '#EEF3FA', '#B8CCE8',
-      'Q5 — Similar Pioneer / partner exists?',
-      'Is anyone else building a similar solution in the ecosystem?',
-      '#1A3A5C');
-
-    // ── Q6+Q7 combined ──
-    const q67y = q5y + nodeH + 50;
-    arrowDown(g, cx, q5y + nodeH, q67y);
-    drawNode(g, cx - nodeW / 2, q67y, nodeW, nodeH,
-      '#EEF3FA', '#B8CCE8',
-      'Q6 + Q7 — Technical confidence & Wallet fit',
-      'Score both, no hard gates → adding to total',
+      'Q4 + Q5 \u2014 Build status & Uniqueness',
+      'Score both, no hard gates \u2192 adding to total',
       '#1A3A5C');
 
     // ── Score gate ──
-    const gateY = q67y + nodeH + 50;
-    arrowDown(g, cx, q67y + nodeH, gateY);
+    const gateY = 692;
+    arrowDown(g, cx, q45y + nodeH, gateY);
     g.appendChild(svgRect(cx - nodeW / 2, gateY, nodeW, 56, { rx: 8, fill: '#1A1A1A' }));
     g.appendChild(svgText(cx, gateY + 16, 'Total score + outcome (max 30 pts)', {
       'font-family': fontFam, 'font-size': 12, 'font-weight': 600,
@@ -963,11 +887,11 @@
     const barX = cx - nodeW / 2 + 12;
     const barW = nodeW - 24;
     const segs = [
-      { label: '0–14', pct: 14 / 30, color: '#C0270F' },
-      { label: '15–19', pct: 5 / 30, color: '#7A4500' },
-      { label: '20–24', pct: 5 / 30, color: '#0A5C35' },
-      { label: '25–27', pct: 3 / 30, color: '#063D23' },
-      { label: '28–30', pct: 3 / 30, color: '#3D2D8A' }
+      { label: '0\u201314', pct: 14 / 30, color: '#C0270F' },
+      { label: '15\u201319', pct: 5 / 30, color: '#7A4500' },
+      { label: '20\u201324', pct: 5 / 30, color: '#0A5C35' },
+      { label: '25\u201327', pct: 3 / 30, color: '#063D23' },
+      { label: '28\u201330', pct: 3 / 30, color: '#3D2D8A' }
     ];
     let bx = barX;
     for (const seg of segs) {
@@ -981,15 +905,15 @@
     }
 
     // ── Outcome fan ──
-    const fanY = gateY + 56 + 50;
+    const fanY = 808;
     arrowDown(g, cx, gateY + 56, fanY);
 
     const fanBoxW = 118;
     const fanBoxH = 54;
-    const fanSpacing = (W - 20 - fanBoxW) / (outcomes.length - 1);
-    const scoreRanges = ['0–14', '15–19', '20–24', '25–27', '28–30'];
+    const fanSpacing = (W - 20 - fanBoxW) / (cfg.outcomes.length - 1);
+    const scoreRanges = ['0\u201314', '15\u201319', '20\u201324', '25\u201327', '28\u201330'];
 
-    outcomes.forEach((o, i) => {
+    cfg.outcomes.forEach((o, i) => {
       const fx = 10 + i * fanSpacing;
       g.appendChild(svgRect(fx, fanY, fanBoxW, fanBoxH, {
         rx: 7, fill: o.bg, stroke: o.color, 'stroke-width': 1.5
@@ -997,7 +921,7 @@
       g.appendChild(svgText(fx + fanBoxW / 2, fanY + 14, o.emoji, {
         'font-family': fontFam, 'font-size': 14, 'text-anchor': 'middle'
       }));
-      const shortLabel = o.label.length > 18 ? o.label.slice(0, 17) + '…' : o.label;
+      const shortLabel = o.label.length > 18 ? o.label.slice(0, 17) + '\u2026' : o.label;
       g.appendChild(svgText(fx + fanBoxW / 2, fanY + 30, shortLabel, {
         'font-family': fontFam, 'font-size': 9, 'font-weight': 600,
         fill: o.color, 'text-anchor': 'middle'
@@ -1008,33 +932,14 @@
       }));
     });
 
-    // Dashed amber line from capped box → 🟡 outcome box (index 1)
-    const needsDiscussionX = 10 + 1 * fanSpacing + fanBoxW / 2;
-    const dashedStartX = cappedX + cappedW / 2;
-    const dashedStartY = cappedY + cappedH;
-    const dashedEndY = fanY;
-
-    // Route: down from capped box, then across, then down to outcome
-    const midY = fanY - 20;
-    g.appendChild(svgEl('polyline', {
-      points: `${dashedStartX},${dashedStartY} ${dashedStartX},${midY} ${needsDiscussionX},${midY} ${needsDiscussionX},${dashedEndY - 8}`,
-      fill: 'none',
-      stroke: '#FFD97D',
-      'stroke-width': 1.5,
-      'stroke-dasharray': '5 4',
-      'marker-end': 'url(#arrowAmber)'
-    }));
-
     return svg;
   }
 
   function buildScoringReference(cfg) {
-    const { questions, outcomes, specialRule } = cfg;
+    const { questions, outcomes } = cfg;
 
     const badgeColors = [
       { bg: '#FF5500', color: '#fff' },
-      { bg: '#B8CCE8', color: '#1A3A5C' },
-      { bg: '#B8CCE8', color: '#1A3A5C' },
       { bg: '#B8CCE8', color: '#1A3A5C' },
       { bg: '#B8CCE8', color: '#1A3A5C' },
       { bg: '#B8CCE8', color: '#1A3A5C' },
@@ -1046,7 +951,7 @@
 
     const title = document.createElement('div');
     title.className = 'scoring-ref-title';
-    title.textContent = 'Scoring Reference — All 7 Questions';
+    title.textContent = 'Scoring Reference \u2014 All 5 Questions';
     div.appendChild(title);
 
     const table = document.createElement('table');
@@ -1102,11 +1007,6 @@
     });
     table.appendChild(tbody);
     div.appendChild(table);
-
-    const note = document.createElement('div');
-    note.className = 'scoring-special-note';
-    note.textContent = '⚠️ If Q3 (privacy) pts = 0 AND Q2 (Guardian) = 0 → capped at Needs discussion, regardless of other scores';
-    div.appendChild(note);
 
     // Outcome bar
     const barDiv = document.createElement('div');

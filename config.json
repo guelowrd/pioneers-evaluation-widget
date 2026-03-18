@@ -1,6 +1,19 @@
 {
   "questions": [
     {
+      "id": "q1",
+      "label": "Technical delivery confidence",
+      "hint": "How confident are you in the team's ability to deliver the technical component?",
+      "type": "single",
+      "hardStop": true,
+      "hardStopAnswer": 0,
+      "options": [
+        { "label": "<60% sure", "points": 0 },
+        { "label": "60–90% sure", "points": 2 },
+        { "label": ">90% sure", "points": 4 }
+      ]
+    },
+    {
       "id": "q2",
       "label": "Business delivery confidence",
       "hint": "How confident are you in the team's ability to deliver business outcomes? (Weighted heaviest)",
@@ -14,30 +27,22 @@
       ]
     },
     {
-      "id": "q4",
-      "label": "Guardian leverage",
-      "hint": "Does this project leverage or benefit from Guardian? Select all that apply.",
-      "type": "multi",
-      "options": [
-        { "label": "No Guardian connection", "points": 0, "exclusive": true },
-        { "label": "Yes — some other way", "points": 2 },
-        { "label": "Yes — state / wallet backup", "points": 2 },
-        { "label": "Yes — compliance (KYC/AML/Predicate)", "points": 2 }
-      ]
-    },
-    {
       "id": "q3",
-      "label": "Practical privacy / compliance fit",
-      "hint": "Does the project genuinely benefit from Miden's privacy or compliance features?",
-      "type": "single",
+      "label": "Ecosystem fit",
+      "hint": "Does this project fit into the Miden ecosystem? Select all that apply.",
+      "type": "multi",
+      "hardStop": true,
       "options": [
-        { "label": "No", "points": 0 },
-        { "label": "Maybe", "points": 2 },
-        { "label": "Yes", "points": 4 }
+        { "label": "No fit at all", "points": 0, "exclusive": true },
+        { "label": "Leverage Miden Guardian for compliance", "points": 3 },
+        { "label": "Leverage Miden Guardian for state backup", "points": 3 },
+        { "label": "Leverage Miden Guardian in a novel way", "points": 2 },
+        { "label": "Leverage Miden Wallet capacities", "points": 2 },
+        { "label": "Fit the Practical Privacy narrative", "points": 2 }
       ]
     },
     {
-      "id": "q6",
+      "id": "q4",
       "label": "Product already built?",
       "hint": "What is the current build status of the product?",
       "type": "single",
@@ -48,7 +53,7 @@
       ]
     },
     {
-      "id": "q7",
+      "id": "q5",
       "label": "Similar Pioneer / partner exists?",
       "hint": "Is anyone else building a similar solution in the ecosystem?",
       "type": "single",
@@ -57,36 +62,8 @@
         { "label": "1 team already building this", "points": 2 },
         { "label": "No team building this", "points": 4 }
       ]
-    },
-    {
-      "id": "q1",
-      "label": "Technical delivery confidence",
-      "hint": "How confident are you in the team's ability to deliver the technical component?",
-      "type": "single",
-      "options": [
-        { "label": "<60% sure", "points": 0 },
-        { "label": "60–90% sure", "points": 2 },
-        { "label": ">90% sure", "points": 4 }
-      ]
-    },
-    {
-      "id": "q5",
-      "label": "Wallet / narrative fit",
-      "hint": "Does this project align with the wallet narrative and Miden's ecosystem story?",
-      "type": "single",
-      "options": [
-        { "label": "No", "points": 0 },
-        { "label": "Maybe", "points": 1 },
-        { "label": "Yes", "points": 2 }
-      ]
     }
   ],
-  "specialRule": {
-    "triggerQ3Id": "q3",
-    "triggerQ4Id": "q4",
-    "capOutcomeId": "needs-discussion",
-    "warning": "⚠️ Special rule applied: Guardian = 0 and compliance fit = 0 — outcome capped at \"Needs further discussion\""
-  },
   "outcomes": [
     {
       "id": "no",
