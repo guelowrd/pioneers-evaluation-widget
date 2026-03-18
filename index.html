@@ -925,11 +925,11 @@
     const fanSpacing = (W - 20 - fanBoxW) / (cfg.outcomes.length - 1);
     // Custom display labels (two lines where needed) + score range
     const fanItems = [
-      { line1: 'No \u2014 not at this stage',        line2: null,                         range: '0\u201314'  },
+      { line1: 'No, not at this stage',               line2: null,                         range: '0\u201314'  },
       { line1: 'Needs further discussion',            line2: '\u2192 team chat',            range: '15\u201319' },
-      { line1: 'Yes \u2014 tech support only',        line2: '\u2192 team chat',            range: '20\u201324' },
-      { line1: 'Yes \u2014 $10k POC then grant',      line2: '\u2192 team chat',            range: '25\u201327' },
-      { line1: 'Yes \u2014 strategic',                line2: 'Bobbin / Azeem / Dominik',   range: '28\u201330' },
+      { line1: 'Yes, but tech support only',          line2: '\u2192 team chat',            range: '20\u201324' },
+      { line1: 'Yes, $10k POC first then grant',      line2: '\u2192 team chat',            range: '25\u201327' },
+      { line1: 'Yes, but strategic chat for',         line2: 'Bobbin / Azeem / Dominik',   range: '28\u201330' },
     ];
 
     cfg.outcomes.forEach((o, i) => {
